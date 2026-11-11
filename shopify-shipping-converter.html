@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Shipping Workbook Converter</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --ink:#1d2433; --muted:#5b6475; --line:#dfe3ea;
+  --accent:#1f5fbf; --accent-ink:#ffffff; --accent-soft:#e8f0fc;
+  --err:#b42318; --err-soft:#fdecea; --warn:#8a5a00; --warn-soft:#fff4d6; --info:#1f5fbf; --info-soft:#e8f0fc;
+  --ok:#1a7f37; --band:#f7f9fc; --multi:#fff2cc; --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#14171c; --card:#1c2027; --ink:#e7eaf0; --muted:#a3abba; --line:#2e3440;
+    --accent:#5b9bff; --accent-ink:#0b1220; --accent-soft:#1f2a3d;
+    --err:#ff8a80; --err-soft:#3a1f1f; --warn:#ffcf66; --warn-soft:#3a3018; --info:#8ab8ff; --info-soft:#1f2a3d;
+    --ok:#6fdc8c; --band:#20252d; --multi:#4a4220;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:0}
+h2{font-size:1.05rem;margin:0 0 8px}
+.sub{color:var(--muted);margin:4px 0 0}
+.top{background:var(--card);border-bottom:1px solid var(--line)}
+.top .inner{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.lock{font-size:.85rem;color:var(--ok);border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:0 0 14px}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);padding:22px 14px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{font-size:1.05rem}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.drop:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.big{font-size:1.05rem;padding:11px 20px}
+.btn.danger{color:var(--err)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.files{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.file{border:1px solid var(--line);border-radius:8px;padding:10px}
+.file .head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.file .fname{font-weight:600;word-break:break-all}
+.file .meta{color:var(--muted);font-size:.88rem}
+.file ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}
+.x{border:none;background:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.x:hover{color:var(--err)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:0 0 14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;min-width:110px;flex:1 1 110px}
+.stat b{display:block;font-size:1.4rem}
+.stat span{color:var(--muted);font-size:.85rem}
+.dl{flex:2 1 240px;display:flex;flex-direction:column;justify-content:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px}
+.dl small{color:var(--muted)}
+.sev{display:inline-block;font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 8px;margin-right:6px;white-space:nowrap}
+.sev.error{background:var(--err-soft);color:var(--err)}
+.sev.warning{background:var(--warn-soft);color:var(--warn)}
+.sev.info{background:var(--info-soft);color:var(--info)}
+.issues{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.issues li{font-size:.92rem}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--accent);border-radius:999px;padding:0 8px;font:inherit;font-size:.85rem;cursor:pointer;margin-left:4px}
+details.sevgroup>summary{cursor:pointer;font-weight:600;padding:4px 0}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.toolbar input[type=search]{flex:1 1 260px;min-height:42px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;background:var(--card);color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:var(--card);color:var(--ink);padding:8px 14px;font:inherit;cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.hint{color:var(--muted);font-size:.88rem;margin:0 0 8px}
+details.group{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:0 0 8px}
+details.group>summary{cursor:pointer;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;list-style:none}
+details.group>summary::-webkit-details-marker,details.order>summary::-webkit-details-marker{display:none}
+details.group>summary::before,details.order>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details[open].group>summary::before,details[open].order>summary::before{transform:rotate(90deg)}
+.gtitle{font-weight:600;word-break:break-all}
+.gsub{color:var(--muted);font-size:.88rem}
+.badges{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+.gbody{padding:0 12px 12px}
+details.order{border:1px solid var(--line);border-radius:8px;margin:8px 0 0;background:var(--band)}
+details.order>summary{cursor:pointer;padding:8px 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;list-style:none}
+details.order.excluded{opacity:.55}
+.oid{font-weight:700}
+.obody{padding:0 10px 10px}
+.addr{white-space:pre-wrap;margin:6px 0;font-size:.92rem}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:2px 10px;font-size:.9rem;margin:6px 0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;white-space:pre-wrap;word-break:break-word}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--card);max-height:70vh}
+table{border-collapse:collapse;font-size:.88rem;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
+th{position:sticky;top:0;background:var(--accent-soft);z-index:1;white-space:nowrap}
+td.num{text-align:right;white-space:nowrap}
+table.grid th,table.grid td{border:1px solid var(--muted)}
+table.grid tr.multi td{background:var(--multi)}
+details.group.multi{background:var(--multi)}
+.sev.multi{background:var(--multi);color:var(--ink);border:1px solid var(--line)}
+.swatch{display:inline-block;width:12px;height:12px;background:var(--multi);border:1px solid var(--muted);vertical-align:-1px;margin-right:4px}
+.photo{min-width:56px;width:56px;height:56px}
+label.excl{display:inline-flex;gap:6px;align-items:center;font-size:.9rem;margin-top:6px;cursor:pointer}
+.empty{color:var(--muted);text-align:center;padding:16px}
+.help ol,.help ul{padding-left:20px}
+.help summary{cursor:pointer;font-weight:600}
+#fatal{background:var(--err-soft);color:var(--err);border:1px solid var(--err);border-radius:var(--radius);padding:12px;margin:0 0 14px;white-space:pre-wrap}
+@media (max-width:600px){
+  main{padding:10px}
+  .stat{min-width:90px;padding:8px 10px}
+  .stat b{font-size:1.2rem}
+  .badges{margin-left:0}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="inner">
+  <div>
+    <h1>Shipping workbook from Shopify orders</h1>
+    <p class="sub">Converts Shopify order exports (CSV) into a simplified Excel workbook for preparing shipments.</p>
+  </div>
+  <span class="lock" title="This page has no network access. Files are read only inside this browser tab.">● Offline · nothing is uploaded or saved</span>
+</div></header>
+
+<main>
+  <div id="fatal" hidden></div>
+
+  <section class="card" aria-labelledby="importTitle">
+    <h2 id="importTitle">1. Import Shopify order exports</h2>
+    <div id="drop" class="drop" tabindex="0" role="button" aria-describedby="dropHint">
+      <strong>Drop Shopify order CSV files here</strong>
+      <span id="dropHint" class="sub">or click to choose files · several files at once are fine</span>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,.txt,text/csv,text/plain" multiple hidden>
+    <noscript><p class="sub">This page needs JavaScript enabled to convert files.</p></noscript>
+    <div class="actions">
+      <button class="btn" id="sampleBtn" type="button">Try with sample data</button>
+      <button class="btn danger" id="clearBtn" type="button">Clear all data</button>
+    </div>
+    <ul id="fileList" class="files" aria-live="polite"></ul>
+  </section>
+
+  <section id="results" hidden>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><b id="nCustomers">0</b><span>Customers</span></div>
+      <div class="stat"><b id="nOrders">0</b><span>Orders</span></div>
+      <div class="stat"><b id="nRows">0</b><span>Product rows</span></div>
+      <div class="dl">
+        <button class="btn primary big" id="downloadBtn" type="button">⬇ Download Excel</button>
+        <small id="dlNote"></small>
+      </div>
+    </div>
+
+    <section class="card" id="warnCard" aria-labelledby="warnTitle">
+      <h2 id="warnTitle">2. Check warnings</h2>
+      <div id="warnBody"></div>
+    </section>
+
+    <section class="card" aria-labelledby="previewTitle">
+      <h2 id="previewTitle">3. Preview</h2>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search email, customer name or order number" aria-label="Search by email, customer name or order number" autocomplete="off">
+        <div class="seg" role="group" aria-label="Preview type">
+          <button type="button" id="viewGrouped" aria-pressed="true">Grouped</button>
+          <button type="button" id="viewTable" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <p class="hint" id="searchHint"></p>
+      <div id="grouped"></div>
+      <div id="tableView" hidden></div>
+    </section>
+  </section>
+
+  <details class="card help">
+    <summary>How it works · adding product photos in Excel</summary>
+    <h3>Import</h3>
+    <ol>
+      <li>In Shopify: <em>Orders → Export</em>, choose a CSV option. Drop one or more files above.</li>
+      <li>Columns are matched by their names, so their order in the file does not matter.</li>
+      <li>Every product row is kept. Orders are grouped by customer: the same email (spaces and capital letters ignored), or the same phone number and the same name. Separate orders are never merged.</li>
+      <li>Yellow, in the preview and in the workbook: customers with more than one order, and orders with more than one product (several product rows, or a quantity above 1).</li>
+      <li>Order details that Shopify writes only on an order's first row are not copied to its other product rows — only identifiers (order number, email, recipient) are repeated, so amounts such as Total appear once per order.</li>
+      <li>The workbook has <b>Product Photo</b> plus 18 columns, every cell outlined. Cancelled orders, customer notes, deliveries abroad, company deliveries and orders where the amount still to pay differs from Total are still checked and listed under warnings.</li>
+      <li>Nothing is deleted automatically. Repeated imports and suspected duplicates are flagged; you can exclude a repeated copy yourself.</li>
+    </ol>
+    <h3>Adding photos in Excel</h3>
+    <ol>
+      <li>The first column, <b>Product Photo</b>, is empty on purpose. Each of its cells is a square (about 80 × 80 pixels).</li>
+      <li>Crop the photo to a square first (any photo app, or in Excel: <em>Picture Format → Crop → Aspect Ratio → 1:1</em>).</li>
+      <li>Microsoft 365: select the photo cell, then <em>Insert → Pictures → Place in Cell</em>. The picture fits inside the cell and moves with sorting and filtering.</li>
+      <li>Older Excel: <em>Insert → Pictures</em>, set height and width to 2.12 cm (0.83 in), drag it onto the cell, then <em>Format Picture → Properties → Move and size with cells</em>.</li>
+    </ol>
+  </details>
+</main>
+
+<script id="core">
+/*CORE-START*/
+var Core = (function () {
+  'use strict';
+
+  /* ---------------- Schema ---------------- */
+  // Reference list of Shopify order-export columns (used to report what was left out on purpose).
+  var SHOPIFY_COLUMNS = ['Name','Email','Financial Status','Paid at','Fulfillment Status','Fulfilled at','Accepts Marketing','Currency','Subtotal','Shipping','Taxes','Total','Discount Code','Discount Amount','Shipping Method','Created at','Lineitem quantity','Lineitem name','Lineitem price','Lineitem compare at price','Lineitem sku','Lineitem requires shipping','Lineitem taxable','Lineitem fulfillment status','Billing Name','Billing Street','Billing Address1','Billing Address2','Billing Company','Billing City','Billing Zip','Billing Province','Billing Country','Billing Phone','Shipping Name','Shipping Street','Shipping Address1','Shipping Address2','Shipping Company','Shipping City','Shipping Zip','Shipping Province','Shipping Country','Shipping Phone','Notes','Note Attributes','Cancelled at','Payment Method','Payment Reference','Refunded Amount','Vendor','Outstanding Balance','Employee','Location','Device ID','Id','Tags','Risk Level','Source','Lineitem discount','Tax 1 Name','Tax 1 Value','Tax 2 Name','Tax 2 Value','Tax 3 Name','Tax 3 Value','Tax 4 Name','Tax 4 Value','Tax 5 Name','Tax 5 Value','Phone','Receipt Number','Duties','Billing Province Name','Shipping Province Name','Payment ID','Payment Terms Name','Next Payment Due At','Payment References'];
+
+  // Approved reduced columns, in output order.
+  // type: text | money | int.  scope: id = identifier repeated on every product row of the same order;
+  // line = value of that product row; order = order detail (only on the order's first row).
+  // name = Shopify column read from the file; label = heading written in the workbook (defaults to name).
+  function C(name, type, scope, required, width, label) { return { name: name, type: type, scope: scope, required: required, width: width, label: label || name }; }
+  var OUTPUT = [
+    C('Name', 'text', 'id', true, 12, 'order_id'),
+    C('Lineitem name', 'text', 'line', true, 36),
+    C('Lineitem price', 'money', 'line', false, 11),
+    C('Shipping City', 'text', 'order', true, 16),
+    C('Shipping Address1', 'text', 'order', true, 30),
+    C('Shipping Address2', 'text', 'order', true, 24),
+    C('Shipping Name', 'text', 'id', true, 18),
+    C('Shipping Phone', 'text', 'order', true, 18),
+    C('Shipping Zip', 'text', 'order', true, 11),
+    C('Currency', 'text', 'order', true, 12),
+    C('Subtotal', 'money', 'order', false, 11),
+    C('Shipping', 'money', 'order', false, 11),
+    C('Total', 'money', 'order', true, 11),
+    C('Email', 'text', 'id', true, 26),
+    C('Fulfillment Status', 'text', 'order', true, 13),
+    C('Payment Method', 'text', 'order', true, 18),
+    C('Lineitem sku', 'text', 'line', true, 22),
+    C('Lineitem quantity', 'int', 'line', true, 11)
+  ];
+  var NOUT = OUTPUT.length;
+  // Read from the file only for warnings, grouping and search — NOT written to the workbook.
+  var CHECK_ONLY = ['Billing Phone', 'Financial Status', 'Outstanding Balance', 'Cancelled at', 'Shipping Country', 'Shipping Company', 'Notes',
+    'Note Attributes', 'Phone', 'Payment Terms Name', 'Lineitem requires shipping', 'Id'];
+  var READ = OUTPUT.map(function (c) { return c.name; }).concat(CHECK_ONLY);   // first NOUT entries = workbook columns
+  var HOME_COUNTRY = 'BG';
+  var PHOTO_HEADER = 'Product Photo';
+  var ESSENTIAL = ['Name', 'Lineitem name', 'Lineitem quantity'];
+  // Shopify leaves these blank on the extra product rows of an order; all blank = continuation row.
+  var PROBES = ['Financial Status', 'Fulfillment Status', 'Currency', 'Subtotal', 'Total', 'Shipping Method', 'Shipping Name', 'Shipping Address1', 'Shipping City', 'Billing Name', 'Payment Method', 'Outstanding Balance', 'Id', 'Accepts Marketing', 'Source', 'Risk Level'];
+  // Columns Shopify fills on every product row (not order details).
+  var LINE_LEVEL = ['Name', 'Email', 'Created at', 'Lineitem quantity', 'Lineitem name', 'Lineitem price', 'Lineitem compare at price', 'Lineitem sku', 'Lineitem requires shipping', 'Lineitem taxable', 'Lineitem fulfillment status', 'Vendor', 'Lineitem discount'];
+  // Shopify writes a leading apostrophe so spreadsheets keep these as text; the workbook stores them as text instead.
+  var STRIP_APOSTROPHE = ['Shipping Zip', 'Shipping Phone', 'Billing Phone', 'Phone'];
+  var ALIASES = { canceledat: 'cancelledat', paymentterms: 'paymenttermsname' };
+
+  function norm(h) {
+    var k = String(h == null ? '' : h).replace(/^﻿/, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return ALIASES[k] || k;
+  }
+  var COL = {}; READ.forEach(function (n, i) { COL[n] = i; });
+  var KNOWN = {}; SHOPIFY_COLUMNS.forEach(function (h) { KNOWN[norm(h)] = h; });
+  var LINE_SET = {}; LINE_LEVEL.forEach(function (h) { LINE_SET[norm(h)] = true; });
+  var OUT_SET = {}; OUTPUT.forEach(function (c) { OUT_SET[norm(c.name)] = true; });
+
+  /* ---------------- Reading files ---------------- */
+  function decode(u8) {
+    if (!u8 || u8.length === 0) return { error: 'The file is empty.' };
+    if (u8[0] === 0x50 && u8[1] === 0x4B && u8[2] === 0x03 && u8[3] === 0x04)
+      return { error: 'This is an Excel/ZIP file, not a CSV. Export the orders from Shopify as a CSV file and import that.' };
+    var text, enc, note = '';
+    if (u8[0] === 0xEF && u8[1] === 0xBB && u8[2] === 0xBF) { text = new TextDecoder('utf-8').decode(u8.subarray(3)); enc = 'UTF-8'; }
+    else if (u8[0] === 0xFF && u8[1] === 0xFE) { text = new TextDecoder('utf-16le').decode(u8.subarray(2)); enc = 'UTF-16'; }
+    else if (u8[0] === 0xFE && u8[1] === 0xFF) { text = new TextDecoder('utf-16be').decode(u8.subarray(2)); enc = 'UTF-16'; }
+    else {
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(u8); enc = 'UTF-8'; }
+      catch (e) {
+        text = new TextDecoder('windows-1251').decode(u8); enc = 'Windows-1251';
+        note = 'The file is not UTF-8, so it was read as Windows-1251 (Cyrillic). Check that Bulgarian text looks right.';
+      }
+    }
+    if (/\u0000/.test(text.slice(0, 4000))) return { error: 'This does not look like a text CSV file.' };
+    return { text: text, encoding: enc, note: note };
+  }
+
+  function detectDelimiter(text) {
+    var counts = { ',': 0, ';': 0, '\t': 0, '|': 0 }, inQ = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (c === '"') { if (inQ && text[i + 1] === '"') { i++; continue; } inQ = !inQ; continue; }
+      if (!inQ && (c === '\n' || c === '\r')) break;
+      if (!inQ && counts.hasOwnProperty(c)) counts[c]++;
+    }
+    var best = ',', max = 0;
+    [',', ';', '\t', '|'].forEach(function (d) { if (counts[d] > max) { max = counts[d]; best = d; } });
+    return best;
+  }
+
+  // RFC 4180 parser: quoted fields, doubled quotes, delimiters and line breaks inside quotes, CRLF/LF/CR.
+  function parseCSV(text, delim) {
+    var records = [], row = [], field = '', inQ = false, quoted = false, i = 0, n = text.length;
+    while (i < n) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        field += c; i++; continue;
+      }
+      if (c === '"' && field === '' && !quoted) { inQ = true; quoted = true; i++; continue; }
+      if (c === delim) { row.push(field); field = ''; quoted = false; i++; continue; }
+      if (c === '\r' || c === '\n') {
+        row.push(field); records.push(row); row = []; field = ''; quoted = false;
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        i++; continue;
+      }
+      field += c; i++;
+    }
+    if (field !== '' || quoted || row.length) { row.push(field); records.push(row); }
+    return { records: records, unterminated: inQ };
+  }
+
+  function issue(sev, msg, extra) {
+    var o = { sev: sev, msg: msg, file: '', order: '', email: '', rows: '' };
+    if (extra) for (var k in extra) o[k] = extra[k];
+    return o;
+  }
+  function listRows(rows) {
+    if (rows.length <= 15) return rows.join(', ');
+    return rows.slice(0, 15).join(', ') + ' and ' + (rows.length - 15) + ' more';
+  }
+  function hashBytes(u8) { // FNV-1a, only used to notice the same file imported twice
+    var h = 0x811c9dc5;
+    for (var i = 0; i < u8.length; i++) { h ^= u8[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16) + ':' + u8.length;
+  }
+  var INVALID_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/;
+
+  function readFile(input, ctx) {
+    var f = { id: input.id, name: input.name, issues: [], orders: [], encoding: '', delimiter: '', dataRows: 0, productRows: 0, blankRows: 0,
+      processed: false, missingRequired: [], missingOptional: [], leftOut: [], unknown: [], apostrophes: 0 };
+    function fileIssue(sev, msg, rows) { f.issues.push(issue(sev, msg, { file: f.name, rows: rows || '' })); }
+
+    var d = decode(input.bytes);
+    if (d.error) { fileIssue('error', 'Not processed: ' + d.error); return f; }
+    f.encoding = d.encoding;
+    if (d.note) fileIssue('warning', d.note);
+    var delim = detectDelimiter(d.text);
+    f.delimiter = delim === '\t' ? 'tab' : delim;
+    var parsed = parseCSV(d.text, delim);
+    if (parsed.unterminated) fileIssue('error', 'The file ends inside a quoted value, so it may be cut off or damaged. Re-export it from Shopify.');
+
+    var recs = parsed.records, h = 0;
+    while (h < recs.length && recs[h].every(function (c) { return c.trim() === ''; })) h++;
+    if (h >= recs.length) { fileIssue('error', 'Not processed: the file has no column headings.'); return f; }
+    var header = recs[h];
+    if (header.length < 3) { fileIssue('error', 'Not processed: the columns could not be separated (unusual delimiter?). Expected a Shopify order export.'); return f; }
+
+    var idx = {}, dupHeads = [];
+    header.forEach(function (name, i) {
+      var k = norm(name); if (!k) return;
+      if (idx.hasOwnProperty(k)) dupHeads.push(name.trim()); else idx[k] = i;
+    });
+    if (dupHeads.length) fileIssue('warning', 'Column heading repeated: ' + dupHeads.join(', ') + '. The first one is used.');
+    var missingEssential = ESSENTIAL.filter(function (c) { return !idx.hasOwnProperty(norm(c)); });
+    if (missingEssential.length) {
+      fileIssue('error', 'Not processed: this does not look like a Shopify order export (missing ' + missingEssential.join(', ') + ').');
+      return f;
+    }
+    f.processed = true;
+    OUTPUT.forEach(function (c) {
+      if (!idx.hasOwnProperty(norm(c.name))) (c.required ? f.missingRequired : f.missingOptional).push(c.name);
+    });
+    if (f.missingRequired.length) fileIssue('error', 'Missing required column' + (f.missingRequired.length > 1 ? 's' : '') + ': ' + f.missingRequired.join(', ') + '. These cells are left blank in the workbook.');
+    if (f.missingOptional.length) fileIssue('info', 'Optional column' + (f.missingOptional.length > 1 ? 's' : '') + ' not in this file (left blank): ' + f.missingOptional.join(', ') + '.');
+    f.has = {}; READ.forEach(function (n) { f.has[n] = idx.hasOwnProperty(norm(n)); });
+    var missingChecks = CHECK_ONLY.filter(function (n) { return !f.has[n]; });
+    if (missingChecks.length) fileIssue('info', 'Not in this file, so the related checks are skipped: ' + missingChecks.join(', ') + '.');
+    header.forEach(function (name) {
+      var k = norm(name); if (!k || OUT_SET[k]) return;
+      if (KNOWN[k]) f.leftOut.push(name.trim()); else f.unknown.push(name.trim());
+    });
+    if (f.unknown.length) fileIssue('info', 'Columns not in the shipping layout were left out: ' + f.unknown.join(', ') + '.');
+
+    var readIdx = READ.map(function (n) { return idx.hasOwnProperty(norm(n)) ? idx[norm(n)] : -1; });
+    var probeIdx = PROBES.map(norm).filter(function (k) { return idx.hasOwnProperty(k); }).map(function (k) { return idx[k]; });
+    var orderLevelIdx = [];
+    Object.keys(idx).forEach(function (k) { if (KNOWN[k] && !LINE_SET[k]) orderLevelIdx.push(idx[k]); });
+    var nameIdx = idx[norm('Name')];
+    var stripIdx = STRIP_APOSTROPHE.map(function (n) { return COL[n]; });
+    var idCols = []; OUTPUT.forEach(function (c, i) { if (c.scope === 'id') idCols.push(i); });
+
+    function cell(cells, i) { return i < 0 || cells[i] == null ? '' : cells[i]; }
+    function isContinuation(cells) {
+      if (!probeIdx.length) return null;
+      return probeIdx.every(function (i) { return cell(cells, i).trim() === ''; });
+    }
+    function sameOrderDetails(cells, firstCells) {
+      return orderLevelIdx.every(function (i) { return cell(cells, i).trim() === cell(firstCells, i).trim(); });
+    }
+
+    var extraRows = [], shortRows = [], badChars = [];
+    var cur = null;
+    // line.out holds every READ field; only the first NOUT go into the workbook.
+    function makeLine(cells, rowNo) {
+      var out = readIdx.map(function (i) { return cell(cells, i); });
+      stripIdx.forEach(function (i) { if (out[i].charAt(0) === "'") { out[i] = out[i].slice(1); f.apostrophes++; } });
+      if (out.slice(0, NOUT).some(function (v) { return INVALID_CHARS.test(v); })) badChars.push(rowNo);
+      return { out: out, row: rowNo, carried: [] };
+    }
+    function startOrder(kind, cells, rowNo) {
+      var line = makeLine(cells, rowNo);
+      var o = { key: f.id + ':' + rowNo, uid: ++ctx.uid, seq: ++ctx.seq, kind: kind, fileId: f.id, fileName: f.name, firstRow: rowNo,
+        name: cell(cells, nameIdx).trim(), firstCells: cells, first: line.out, lines: [line], issues: [], excluded: false, dupIssue: null };
+      f.orders.push(o);
+      return o;
+    }
+    function addLine(o, cells, rowNo) {
+      var line = makeLine(cells, rowNo);
+      idCols.forEach(function (ci) {
+        var v = line.out[ci].trim(), base = o.first[ci].trim();
+        if (o.kind !== 'normal') return;               // carry forward only inside a confirmed order
+        if (!v && base) { line.out[ci] = o.first[ci]; line.carried.push(ci); }
+        else if (v && base && v.toLowerCase() !== base.toLowerCase())
+          o.issues.push(issue('warning', 'Row ' + rowNo + ': ' + OUTPUT[ci].name + ' "' + v + '" differs from the order\'s first row ("' + base + '"). Kept as exported.'));
+      });
+      o.lines.push(line);
+    }
+
+    for (var r = h + 1; r < recs.length; r++) {
+      var cells = recs[r], rowNo = r + 1;
+      if (cells.every(function (c) { return c.trim() === ''; })) { f.blankRows++; continue; }
+      f.dataRows++;
+      if (cells.length > header.length && cells.slice(header.length).some(function (c) { return c.trim() !== ''; })) extraRows.push(rowNo);
+      else if (cells.length < header.length) shortRows.push(rowNo);
+      var name = cell(cells, nameIdx).trim();
+      var cont = isContinuation(cells);
+      if (!name) { startOrder('noid', cells, rowNo); cur = null; continue; }
+      if (cur && cur.name === name && cur.kind !== 'noid') {
+        if (cont !== false || sameOrderDetails(cells, cur.firstCells)) { addLine(cur, cells, rowNo); continue; }
+        cur = startOrder('normal', cells, rowNo); continue;
+      }
+      cur = startOrder(cont === true ? 'orphan' : 'normal', cells, rowNo);
+    }
+    f.productRows = f.orders.reduce(function (a, o) { return a + o.lines.length; }, 0);
+    if (f.blankRows) fileIssue('info', f.blankRows + ' empty line' + (f.blankRows > 1 ? 's were' : ' was') + ' skipped (no values).');
+    if (extraRows.length) fileIssue('error', 'Rows with more values than column headings (the extra values could not be matched to a column — check the file): rows ' + listRows(extraRows) + '.', listRows(extraRows));
+    if (shortRows.length) fileIssue('warning', 'Rows with fewer values than column headings (missing values treated as blank): rows ' + listRows(shortRows) + '.', listRows(shortRows));
+    if (badChars.length) fileIssue('warning', 'Invisible control characters were removed from rows ' + listRows(badChars) + ' (Excel cannot store them).', listRows(badChars));
+    if (f.dataRows === 0) fileIssue('warning', 'The file has column headings but no order rows.');
+    if (f.apostrophes) fileIssue('info', 'Removed Shopify\'s leading apostrophe from ' + f.apostrophes + ' postcode/phone value' + (f.apostrophes > 1 ? 's' : '') + ' (it only tells spreadsheets to keep them as text; the workbook stores them as text).');
+    return f;
+  }
+
+  /* ---------------- Checks ---------------- */
+  function g(o, name) { return (o.first[COL[name]] || '').trim(); }
+  function num(s) { return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : null; }
+  function clip(s) { s = s.replace(/\s+/g, ' '); return s.length > 300 ? s.slice(0, 300) + '…' : s; }
+  function phoneProblem(raw, country) {
+    var compact = raw.replace(/[\s\-().\/]/g, '');
+    if (!/^\+?\d+$/.test(compact)) return 'contains characters other than digits';
+    var c = country.toUpperCase();
+    if (c === 'BG' || c === '') {
+      if (/^0\d{7,9}$/.test(compact) || /^(\+|00)359\d{7,9}$/.test(compact)) return null;
+      if (/^[89]\d{8}$/.test(compact)) return 'looks like a Bulgarian mobile number without its leading 0';
+      return 'does not have a usual Bulgarian number length';
+    }
+    var digits = compact.replace(/\D/g, '');
+    return digits.length < 7 || digits.length > 15 ? 'has an unusual length' : null;
+  }
+  function validateOrder(o, has) {
+    var add = function (sev, msg) { o.issues.push(issue(sev, msg)); };
+    if (o.kind === 'noid') { add('error', 'Row ' + o.firstRow + ' has no order number (Name). Kept as its own record.'); return; }
+    if (o.kind === 'orphan') {
+      add('error', 'Product row' + (o.lines.length > 1 ? 's' : '') + ' ' + o.lines.map(function (l) { return l.row; }).join(', ') +
+        ' belong to order ' + o.name + ', but the order\'s first row (with its details) is not directly above. Not merged with any other order — check the export.');
+      return;
+    }
+    var country = g(o, 'Shipping Country');
+    if (has('Shipping Name') && !g(o, 'Shipping Name')) add('error', 'Missing recipient name (Shipping Name).');
+    if (has('Shipping Address1') && !g(o, 'Shipping Address1') && !g(o, 'Shipping Address2')) add('error', 'Missing shipping address.');
+    if (has('Shipping City') && !g(o, 'Shipping City')) add('error', 'Missing shipping city.');
+    if (has('Shipping Zip') && !g(o, 'Shipping Zip')) add('error', 'Missing postcode (Shipping Zip).');
+    if (has('Shipping Country') && !country) add('warning', 'Shipping country is empty — check the address.');
+    if (country && country.toUpperCase() !== HOME_COUNTRY) add('warning', 'Ships abroad to ' + country + ' — the country is not shown in the workbook.');
+    if (g(o, 'Shipping Company')) add('info', 'Delivery to a company: “' + clip(g(o, 'Shipping Company')) + '” (company name is not shown in the workbook).');
+    if (g(o, 'Notes')) add('warning', 'Customer note (not shown in the workbook): “' + clip(g(o, 'Notes')) + '”');
+    if (g(o, 'Note Attributes')) add('warning', 'Order note attributes, e.g. a chosen office or locker (not shown in the workbook): “' + clip(g(o, 'Note Attributes')) + '”');
+    if (has('Shipping Phone')) {
+      var ph = g(o, 'Shipping Phone');
+      if (!ph) {
+        var alt = [g(o, 'Phone'), g(o, 'Billing Phone')].filter(Boolean);
+        add('error', 'No shipping phone.' + (alt.length ? ' A number exists in Phone/Billing Phone (' + alt.join(' / ') + ') — confirm before using it.' : ''));
+      } else {
+        var p = phoneProblem(ph, country);
+        if (p) add('warning', 'Check phone "' + ph + '": it ' + p + '. Left unchanged.');
+      }
+    }
+    var zip = g(o, 'Shipping Zip');
+    if (zip && (country.toUpperCase() === 'BG') && !/^\d{4}$/.test(zip)) add('warning', 'Postcode "' + zip + '" is not 4 digits (Bulgarian postcodes have 4).');
+    var cancelled = g(o, 'Cancelled at');
+    if (cancelled) add('error', 'Cancelled (' + cancelled + ') — do not ship.');
+    var fs = g(o, 'Fulfillment Status').toLowerCase();
+    if (fs === 'fulfilled') add('info', 'Already fulfilled in Shopify.');
+    else if (fs === 'partial') add('warning', 'Partially fulfilled — check which items still need shipping.');
+    // The workbook shows Total. Warn when the amount still to pay is different (paid, part-paid or refunded).
+    var pm = g(o, 'Payment Method').toLowerCase(), isCOD = /cash on delivery|\bcod\b|наложен/.test(pm);
+    var total = num(g(o, 'Total')), owed = num(g(o, 'Outstanding Balance')), pay = g(o, 'Financial Status').toLowerCase();
+    if (total != null && owed != null && Math.abs(total - owed) > 0.004)
+      add('warning', 'Amount still to pay is ' + g(o, 'Outstanding Balance') + ', but Total is ' + g(o, 'Total') + ' (paid, part-paid or refunded). Check the cash-on-delivery amount — the workbook shows Total.');
+    else if (owed == null && /^(paid|partially_paid|partially_refunded|refunded)$/.test(pay))
+      add('warning', 'Payment status is “' + pay + '” — check the cash-on-delivery amount; the workbook shows Total.');
+    if (isCOD && has('Total') && !g(o, 'Total')) add('warning', 'Cash-on-delivery order, but Total is empty.');
+    if (g(o, 'Payment Terms Name')) add('info', 'Has payment terms (' + g(o, 'Payment Terms Name') + ') — invoiced, not cash on delivery.');
+    if (has('Email') && !g(o, 'Email')) add('info', 'No email — grouped by order number.');
+    o.lines.forEach(function (l) {
+      var q = (l.out[COL['Lineitem quantity']] || '').trim();
+      if (!/^\d+$/.test(q) || Number(q) === 0) add('warning', 'Row ' + l.row + ': quantity "' + q + '" is not a whole number above 0.');
+      if (!(l.out[COL['Lineitem name']] || '').trim()) add('warning', 'Row ' + l.row + ': product name is empty.');
+      if ((l.out[COL['Lineitem requires shipping']] || '').trim().toLowerCase() === 'false') add('info', 'Row ' + l.row + ': product does not require shipping.');
+    });
+  }
+
+  function simple(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  // Phone used only for matching customers (the cell value is never changed): +359 / 00359 / 359 → 0, and a 9-digit
+  // Bulgarian mobile written without its leading 0 is matched as 0 + number. Too-short numbers are ignored.
+  function phoneMatchKey(s) {
+    var d = String(s || '').replace(/[^\d+]/g, '').replace(/^(\+|00)359/, '0').replace(/^359(?=\d{8,9}$)/, '0');
+    if (/^[89]\d{8}$/.test(d)) d = '0' + d;
+    return d.replace(/\D/g, '').length >= 6 ? d : '';
+  }
+  function recipientKey(o) {
+    return ['Shipping Name', 'Shipping Company', 'Shipping Address1', 'Shipping Address2', 'Shipping City', 'Shipping Zip', 'Shipping Country']
+      .map(function (n) { return simple(g(o, n)); }).join('|') + '|' + phoneMatchKey(g(o, 'Shipping Phone'));
+  }
+  function productsKey(o) {
+    return o.lines.map(function (l) {
+      return simple(l.out[COL['Lineitem sku']] || l.out[COL['Lineitem name']]) + '×' + simple(l.out[COL['Lineitem quantity']]);
+    }).sort().join(';');
+  }
+  function orderLabel(o) { return o.name || ('row ' + o.firstRow); }
+  function where(o) { return '“' + o.fileName + '” row ' + o.firstRow; }
+
+  /* ---------------- Main conversion ---------------- */
+  function convert(inputs, excluded) {
+    excluded = excluded || {};
+    var ctx = { uid: 0, seq: 0 }, files = [], orders = [], seen = {};
+    inputs.forEach(function (inp) {
+      var f = readFile(inp, ctx), hsh = hashBytes(inp.bytes);
+      if (seen[hsh]) f.issues.push(issue('warning', 'Same content as “' + seen[hsh] + '”. Its orders are flagged as repeated imports.', { file: f.name }));
+      else seen[hsh] = f.name;
+      files.push(f);
+      f.orders.forEach(function (o) { validateOrder(o, function (n) { return !!(f.has && f.has[n]); }); orders.push(o); });
+    });
+
+    // Repeated order numbers (repeated imports or conflicting copies). Nothing is removed.
+    var byName = {}, extra = [];
+    orders.forEach(function (o) { if (o.name && o.kind === 'normal') (byName[o.name] = byName[o.name] || []).push(o); });
+    Object.keys(byName).forEach(function (n) {
+      var copies = byName[n]; if (copies.length < 2) return;
+      var sig = function (o) { return JSON.stringify(o.lines.map(function (l) { return l.out; })); };
+      var identical = copies.every(function (o) { return sig(o) === sig(copies[0]); });
+      var at = copies.map(where).join('; ');
+      var is = identical
+        ? issue('warning', 'Order ' + n + ' was imported ' + copies.length + ' times with identical details (' + at + '). All copies are kept — tick “Exclude” on the extra copy if it is a repeated import.', { order: n })
+        : issue('error', 'Order ' + n + ' appears ' + copies.length + ' times with different details (' + at + '). All copies are kept — check which one is current.', { order: n });
+      copies.forEach(function (o) { o.dupIssue = is; o.dupCount = copies.length; });
+      extra.push(is);
+    });
+
+    // Customer groups: the same customer = same email (spaces/capitals ignored) OR same phone number and same recipient name.
+    // Copies of the same order number always stay together. Orders with no email and no phone+name are never combined.
+    var parent = orders.map(function (_, i) { return i; });
+    function find(i) { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
+    function link(map, key, i) { if (!key) return; if (map.hasOwnProperty(key)) { var a = find(map[key]), b = find(i); if (a !== b) parent[Math.max(a, b)] = Math.min(a, b); } else map[key] = i; }
+    var byEmail = {}, byPhoneName = {}, byOrderNo = {};
+    orders.forEach(function (o, i) {
+      link(byEmail, g(o, 'Email').toLowerCase(), i);
+      var p = phoneMatchKey(g(o, 'Shipping Phone')), n = simple(g(o, 'Shipping Name'));
+      link(byPhoneName, p && n ? p + '|' + n : '', i);
+      link(byOrderNo, o.name, i);
+    });
+    var groups = [], gmap = {};
+    orders.forEach(function (o, i) {
+      var root = find(i), grp = gmap[root];
+      if (!grp) { grp = gmap[root] = { key: 'g:' + orders[root].key, email: '', emails: [], orders: [], issues: [], seq: orders[root].seq }; groups.push(grp); }
+      grp.orders.push(o);
+      var email = g(o, 'Email');
+      if (email && grp.emails.indexOf(email) < 0) grp.emails.push(email);
+      if (!grp.email && email) grp.email = email;
+    });
+    groups.forEach(function (grp) {
+      var firstSeq = {};
+      grp.orders.forEach(function (o) { var k = o.name || ('#' + o.uid); if (!(k in firstSeq)) firstSeq[k] = o.seq; });
+      grp.orders.sort(function (a, b) { return firstSeq[a.name || ('#' + a.uid)] - firstSeq[b.name || ('#' + b.uid)] || a.seq - b.seq; });
+      var emailKeys = []; grp.orders.forEach(function (o) { var k = g(o, 'Email').toLowerCase(); if (emailKeys.indexOf(k) < 0) emailKeys.push(k); });
+      if (emailKeys.length > 1)
+        grp.issues.push(issue('info', 'Grouped as one customer (same email, or same phone number and name), but the orders use different emails: ' +
+          emailKeys.map(function (k) { return k || '(no email)'; }).join(' / ') + '.', { email: grp.email, order: grp.orders.map(orderLabel).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ') }));
+      else if (grp.emails.length > 1) grp.issues.push(issue('info', 'Email written in different ways (' + grp.emails.join(' / ') + ') — treated as the same customer.', { email: grp.email }));
+      var distinct = [], seenN = {};
+      grp.orders.forEach(function (o) { if (o.kind === 'normal' && o.name && !seenN[o.name]) { seenN[o.name] = 1; distinct.push(o); } });
+      if (distinct.length > 1) {
+        var rk = {}; distinct.forEach(function (o) { (rk[recipientKey(o)] = rk[recipientKey(o)] || []).push(o); });
+        var keys = Object.keys(rk);
+        if (keys.length > 1) {
+          var desc = keys.map(function (k) {
+            var o = rk[k][0];
+            return rk[k].map(orderLabel).join(', ') + ' → ' + [g(o, 'Shipping Name'), g(o, 'Shipping Address1'), g(o, 'Shipping City'), g(o, 'Shipping Phone')].filter(Boolean).join(', ');
+          }).join(' | ');
+          grp.issues.push(issue('warning', 'Same customer, different recipient or shipping details: ' + desc + '. Orders are kept separate — confirm each address.', { email: grp.email, order: distinct.map(orderLabel).join(', ') }));
+        }
+        var pk = {}; distinct.forEach(function (o) { (pk[productsKey(o)] = pk[productsKey(o)] || []).push(o); });
+        Object.keys(pk).forEach(function (k) {
+          if (pk[k].length > 1) grp.issues.push(issue('warning', 'Orders ' + pk[k].map(orderLabel).join(' and ') + ' have the same products — possible duplicate purchase. Both are kept; confirm with the customer.', { email: grp.email, order: pk[k].map(orderLabel).join(', ') }));
+        });
+      }
+    });
+    groups.sort(function (a, b) { return a.seq - b.seq; });
+
+    // Exclusions chosen by the user (never automatic).
+    orders.forEach(function (o) { o.excluded = !!excluded[o.key]; });
+
+    // Collect all issues in display order.
+    var all = [];
+    files.forEach(function (f) { all = all.concat(f.issues); });
+    var dupDone = {};
+    groups.forEach(function (grp) {
+      grp.issues.forEach(function (is) { all.push(is); });
+      grp.orders.forEach(function (o) {
+        o.issues.forEach(function (is) { is.file = o.fileName; is.order = orderLabel(o); is.email = g(o, 'Email'); is.rows = is.rows || String(o.firstRow); all.push(is); });
+        if (o.dupIssue && !dupDone[o.name]) { dupDone[o.name] = 1; o.dupIssue.email = g(o, 'Email'); all.push(o.dupIssue); }
+        if (o.excluded) all.push(issue('info', 'This copy was excluded from the workbook by you.', { order: orderLabel(o), email: g(o, 'Email'), file: o.fileName, rows: String(o.firstRow) }));
+      });
+    });
+    var rank = { error: 0, warning: 1, info: 2 };
+    all.forEach(function (is, i) { is.i = i; });
+    all.sort(function (a, b) { return rank[a.sev] - rank[b.sev] || a.i - b.i; });
+
+    var rows = exportRows(groups);
+    var counts = {
+      customers: groups.filter(function (grp) { return grp.orders.some(function (o) { return !o.excluded; }); }).length,
+      orders: orders.filter(function (o) { return !o.excluded; }).length,
+      productRows: rows.length,
+      excludedOrders: orders.filter(function (o) { return o.excluded; }).length,
+      inputRows: files.reduce(function (a, f) { return a + f.dataRows; }, 0),
+      errors: all.filter(function (x) { return x.sev === 'error'; }).length,
+      warnings: all.filter(function (x) { return x.sev === 'warning'; }).length,
+      infos: all.filter(function (x) { return x.sev === 'info'; }).length
+    };
+    return { files: files, orders: orders, groups: groups, issues: all, counts: counts, rows: rows };
+  }
+
+  // One row per product, grouped: customer → order → products. Shared by the preview and the workbook.
+  // Products in one order = the sum of its quantities (a product row without a numeric quantity counts as 1).
+  function pieceCount(o) {
+    return o.lines.reduce(function (a, l) { var q = Number(String(l.out[COL['Lineitem quantity']] || '').trim()); return a + (q >= 1 ? q : 1); }, 0);
+  }
+  function manyProducts(o) { return o.lines.length > 1 || pieceCount(o) > 1; }
+
+  function exportRows(groups) {
+    var rows = [], gi = 0;
+    groups.forEach(function (grp) {
+      var inc = grp.orders.filter(function (o) { return !o.excluded; });
+      if (!inc.length) return;
+      var sameCustomer = inc.length > 1;   // same customer with more than one order in the workbook
+      inc.forEach(function (o, oi) {
+        var many = manyProducts(o);        // one order with more than one product
+        o.lines.forEach(function (l, li) {
+          rows.push({ values: [''].concat(l.out.slice(0, NOUT)), multi: sameCustomer || many, sameCustomer: sameCustomer, manyProducts: many,
+            sep: (oi === 0 && li === 0) ? 'group' : (li === 0 ? 'order' : ''),
+            level: li > 0 ? 2 : (oi > 0 ? 1 : 0), order: o, line: l, group: grp });
+        });
+      });
+      gi++;
+    });
+    return rows;
+  }
+
+  /* ---------------- XLSX writer (no libraries) ---------------- */
+  var NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  var NSR = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  var HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function cleanText(s) {
+    s = String(s).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '');
+    if (s.length > 32767) s = s.slice(0, 32767);
+    return s.replace(/_x[0-9A-Fa-f]{4}_/g, function (m) { return '_x005F' + m; });
+  }
+  function colName(i) { var s = '', n = i + 1; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+  function StyleBook() {
+    var fonts = [], fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'],
+      borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>'], xfs = [], maps = { font: {}, fill: {}, border: {}, xf: {} };
+    function intern(list, map, xml) { if (!(xml in map)) { map[xml] = list.length; list.push(xml); } return map[xml]; }
+    function font(o) { return intern(fonts, maps.font, '<font>' + (o.bold ? '<b/>' : '') + '<sz val="10"/><color rgb="' + (o.color || 'FF000000') + '"/><name val="Arial"/><family val="2"/></font>'); }
+    function fill(rgb) { return rgb ? intern(fills, maps.fill, '<fill><patternFill patternType="solid"><fgColor rgb="' + rgb + '"/><bgColor indexed="64"/></patternFill></fill>') : 0; }
+    function side(tag, s) { return s ? '<' + tag + ' style="' + s[0] + '"><color rgb="' + s[1] + '"/></' + tag + '>' : '<' + tag + '/>'; }
+    function border(b) { b = b || {}; return intern(borders, maps.border, '<border>' + side('left', b.left) + side('right', b.right) + side('top', b.top) + side('bottom', b.bottom) + '<diagonal/></border>'); }
+    font({});
+    function xf(o) {
+      var xml = '<xf numFmtId="' + (o.numFmt || 0) + '" fontId="' + font(o) + '" fillId="' + fill(o.fill) + '" borderId="' + border(o.border) + '" xfId="0"' +
+        ' applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"' + (o.quote ? ' quotePrefix="1"' : '') + '>' +
+        '<alignment vertical="' + (o.valign || 'top') + '"' + (o.halign ? ' horizontal="' + o.halign + '"' : '') + (o.wrap ? ' wrapText="1"' : '') + '/></xf>';
+      return intern(xfs, maps.xf, xml);
+    }
+    xf({}); // default style 0
+    function xml() {
+      return HEAD + '<styleSheet xmlns="' + NS + '">' +
+        '<fonts count="' + fonts.length + '">' + fonts.join('') + '</fonts>' +
+        '<fills count="' + fills.length + '">' + fills.join('') + '</fills>' +
+        '<borders count="' + borders.length + '">' + borders.join('') + '</borders>' +
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+        '<cellXfs count="' + xfs.length + '">' + xfs.join('') + '</cellXfs>' +
+        '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '<dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>';
+    }
+    return { xf: xf, xml: xml };
+  }
+
+  function SharedStrings() {
+    var map = new Map(), list = [], count = 0;
+    return {
+      add: function (s) { count++; var i = map.get(s); if (i === undefined) { i = list.length; list.push(s); map.set(s, i); } return i; },
+      xml: function () {
+        return HEAD + '<sst xmlns="' + NS + '" count="' + count + '" uniqueCount="' + list.length + '">' +
+          list.map(function (s) { return '<si><t xml:space="preserve">' + esc(s) + '</t></si>'; }).join('') + '</sst>';
+      }
+    };
+  }
+
+  var NUM_RE = { money: /^-?\d+(\.\d+)?$/, int: /^-?\d+$/ };
+  var FORMULA_START = /^[=+\-@\t\r]/;
+  function makeCell(raw, type, sst, styleFor) {
+    var s = raw == null ? '' : String(raw);
+    if (s === '') return { k: 'e', s: styleFor(false) };
+    var t = s.trim();
+    if ((type === 'money' || type === 'int') && NUM_RE[type].test(t)) return { k: 'n', v: t.replace(/^(-?)0+(?=\d)/, '$1'), s: styleFor(false) };
+    var text = cleanText(s);
+    return { k: 's', v: sst.add(text), s: styleFor(FORMULA_START.test(text)) };
+  }
+  function cellXml(ref, c) {
+    if (c.k === 'n') return '<c r="' + ref + '" s="' + c.s + '"><v>' + c.v + '</v></c>';
+    if (c.k === 's') return '<c r="' + ref + '" s="' + c.s + '" t="s"><v>' + c.v + '</v></c>';
+    return '<c r="' + ref + '" s="' + c.s + '"/>';
+  }
+  function sheetXml(sh) {
+    var ncols = sh.widths.length, nrows = sh.rows.length;
+    var last = colName(ncols - 1) + Math.max(nrows, 1);
+    var x = HEAD + '<worksheet xmlns="' + NS + '" xmlns:r="' + NSR + '">';
+    x += '<sheetPr><outlinePr summaryBelow="0"/></sheetPr>';
+    x += '<dimension ref="A1:' + last + '"/>';
+    x += '<sheetViews><sheetView workbookViewId="0"' + (sh.selected ? ' tabSelected="1"' : '') + '>' +
+      (sh.freeze ? '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/>' : '') +
+      '</sheetView></sheetViews>';
+    x += '<sheetFormatPr defaultRowHeight="12.75"' + (sh.maxLevel ? ' outlineLevelRow="' + sh.maxLevel + '"' : '') + '/>';
+    x += '<cols>' + sh.widths.map(function (w, i) { return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols>';
+    x += '<sheetData>';
+    sh.rows.forEach(function (r, ri) {
+      var rn = ri + 1;
+      x += '<row r="' + rn + '"' + (r.ht ? ' ht="' + r.ht + '" customHeight="1"' : '') + (r.level ? ' outlineLevel="' + r.level + '"' : '') + '>';
+      r.cells.forEach(function (c, ci) { x += cellXml(colName(ci) + rn, c); });
+      x += '</row>';
+    });
+    x += '</sheetData>';
+    if (sh.filter && nrows > 1) x += '<autoFilter ref="A1:' + last + '"/>';
+    x += '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>';
+    x += '<ignoredErrors><ignoredError sqref="A1:' + last + '" numberStoredAsText="1"/></ignoredErrors>';
+    return x + '</worksheet>';
+  }
+
+  // Square photo cell: ~80 x 80 px (Arial 10: 7 px per character unit; 60 pt row = 80 px).
+  var PHOTO_PX = 80;
+  var PHOTO_WIDTH = Math.floor(PHOTO_PX / 7 * 256) / 256;
+  var PHOTO_ROW_PT = PHOTO_PX * 0.75;
+
+  function estimateHeight(text, widthChars) {
+    var lines = String(text).split('\n').reduce(function (a, ln) { return a + Math.max(1, Math.ceil(ln.length / Math.max(widthChars - 2, 8))); }, 0);
+    return Math.min(409, Math.max(15, lines * 13 + 3));
+  }
+
+  function buildXlsx(result, opts) {
+    opts = opts || {};
+    var now = opts.now || new Date();
+    var st = StyleBook(), sst = SharedStrings();
+    // Every cell: thin black outline on all four sides. One light yellow for customers with more than one order and for orders with more than one product.
+    var C_HEAD = 'FF1F3864', HEAD_FILL = 'FFDCE6F1', MULTI_FILL = 'FFFFF2CC', THIN = ['thin', 'FF000000'];
+    var ALL_SIDES = { left: THIN, right: THIN, top: THIN, bottom: THIN };
+    var headStyle = st.xf({ bold: true, color: C_HEAD, fill: HEAD_FILL, wrap: true, valign: 'center', numFmt: 49, border: ALL_SIDES });
+    function bodyStyle(type, quote, multi) {
+      return st.xf({ border: ALL_SIDES, fill: multi ? MULTI_FILL : null, wrap: type === 'text', numFmt: type === 'money' ? 2 : (type === 'int' ? 1 : 49),
+        halign: type === 'text' ? null : 'right', quote: quote });
+    }
+
+    // Sheet 1: Shipping
+    var widths = [PHOTO_WIDTH].concat(OUTPUT.map(function (c) { return c.width; }));
+    var types = ['photo'].concat(OUTPUT.map(function (c) { return c.type; }));
+    var srows = [{ ht: 30, cells: [PHOTO_HEADER].concat(OUTPUT.map(function (c) { return c.label; })).map(function (h) { return { k: 's', v: sst.add(h), s: headStyle }; }) }];
+    var maxLevel = 0;
+    result.rows.forEach(function (r) {
+      maxLevel = Math.max(maxLevel, r.level);
+      srows.push({ ht: PHOTO_ROW_PT, level: r.level, cells: r.values.map(function (v, ci) {
+        var t = types[ci];
+        if (t === 'photo') return { k: 'e', s: bodyStyle('text', false, r.multi) };
+        return makeCell(v, t, sst, function (q) { return bodyStyle(t, q, r.multi); });
+      }) });
+    });
+
+    // Sheet 2: Warnings
+    var sevFill = { error: 'FFF8D7DA', warning: 'FFFFF3CD', info: 'FFDDEBF7' }, sevName = { error: 'Error', warning: 'Warning', info: 'Info' };
+    var wWidths = [10, 12, 28, 80, 26, 12];
+    var wHead = ['Severity', 'Order', 'Email', 'Issue', 'File', 'Row(s)'];
+    var wrows = [{ ht: 20, cells: wHead.map(function (h) { return { k: 's', v: sst.add(h), s: headStyle }; }) }];
+    var plain = function (q) { return st.xf({ wrap: true, numFmt: 49, quote: q }); };
+    if (!result.issues.length) wrows.push({ cells: [makeCell('—', 'text', sst, plain), makeCell('', 'text', sst, plain), makeCell('', 'text', sst, plain), makeCell('No warnings.', 'text', sst, plain)] });
+    result.issues.forEach(function (is) {
+      var sevStyle = st.xf({ bold: true, fill: sevFill[is.sev], numFmt: 49 });
+      wrows.push({ ht: estimateHeight(is.msg, 80), cells: [
+        { k: 's', v: sst.add(sevName[is.sev]), s: sevStyle },
+        makeCell(is.order, 'text', sst, plain), makeCell(is.email, 'text', sst, plain), makeCell(is.msg, 'text', sst, plain),
+        makeCell(is.file, 'text', sst, plain), makeCell(is.rows, 'text', sst, plain)] });
+    });
+
+    // Sheet 3: Notes
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var stamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var c = result.counts;
+    var notes = [
+      ['Shipping workbook', true],
+      ['Created ' + stamp + ' from: ' + result.files.map(function (f) { return f.name; }).join(', ')],
+      ['Customers: ' + c.customers + ' · Orders: ' + c.orders + ' · Product rows: ' + c.productRows + (c.excludedOrders ? ' · Excluded by you: ' + c.excludedOrders + ' order copies' : '') + ' · Errors: ' + c.errors + ' · Warnings: ' + c.warnings],
+      [''],
+      ['How to read the Shipping sheet', true],
+      ['• One row per product. Rows are grouped by customer, then by order number. The same customer = the same email (spaces and capital letters ignored), or the same phone number and the same name. Separate orders are never merged.'],
+      ['• Yellow rows: a customer with more than one order in this workbook (same email, or same phone number and name), or an order with more than one product (several product rows, or a quantity above 1). White rows: a customer with one order of one product.'],
+      ['• order_id (the Shopify order number), Email and Shipping Name are repeated on every product row. Other order details (amounts, address, phone, status, payment) appear only on the order\'s first row, exactly as in Shopify — so Total is counted once per order.'],
+      ['• Total includes shipping. For unpaid cash-on-delivery orders it is the amount to collect; the Warnings sheet lists orders where the amount still to pay is different.'],
+      ['• Some Shopify columns are not in this workbook but were still checked: cancelled orders, customer notes, deliveries abroad, company deliveries and payment status are reported on the Warnings sheet.'],
+      ['• Use the 1 / 2 / 3 buttons at the top left to collapse rows: 1 = first row of each customer, 2 = first row of each order, 3 = all products.'],
+      ['• Shopify\'s leading apostrophe on postcodes and phone numbers is removed; these cells are stored as text, so leading zeros and + signs are kept.'],
+      ['• Check the Warnings sheet before shipping. Nothing was deleted automatically.'],
+      [''],
+      ['Adding product photos', true],
+      ['• Column A (Product Photo) is intentionally empty. Each cell is a square of about 80 × 80 pixels.'],
+      ['• Crop each photo to a square first (Picture Format → Crop → Aspect Ratio → 1:1, or any photo app).'],
+      ['• Microsoft 365: select the cell, then Insert → Pictures → Place in Cell. The photo fits the cell and stays with its row when sorting or filtering.'],
+      ['• Other Excel versions: Insert → Pictures, set height and width to 2.12 cm (0.83 in), place it on the cell, then Format Picture → Properties → Move and size with cells.']
+    ];
+    var nTitle = st.xf({ bold: true, color: C_HEAD, numFmt: 49 });
+    var nrows = notes.map(function (n) {
+      return { ht: n[1] ? 18 : estimateHeight(n[0], 110), cells: [makeCell(n[0], 'text', sst, function (q) { return n[1] ? nTitle : plain(q); })] };
+    });
+
+    var sheets = [
+      { name: 'Shipping', xml: sheetXml({ widths: widths, rows: srows, freeze: true, filter: true, maxLevel: maxLevel, selected: true }), filterRef: srows.length > 1 ? 'A1:' + colName(widths.length - 1) + srows.length : null },
+      { name: 'Warnings', xml: sheetXml({ widths: wWidths, rows: wrows, freeze: true, filter: true }), filterRef: wrows.length > 1 ? 'A1:' + colName(wWidths.length - 1) + wrows.length : null },
+      { name: 'Notes', xml: sheetXml({ widths: [110], rows: nrows }) }
+    ];
+    var iso = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    var defined = sheets.map(function (s, i) { return s.filterRef ? '<definedName name="_xlnm._FilterDatabase" localSheetId="' + i + '" hidden="1">' + s.name + '!$' + s.filterRef.replace(':', ':$').replace(/([A-Z]+)(\d+)/g, '$1$$$2') + '</definedName>' : ''; }).join('');
+    var files = [
+      { name: '[Content_Types].xml', data: HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        sheets.map(function (s, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') +
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+        '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+        '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>' },
+      { name: '_rels/.rels', data: HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+        '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>' },
+      { name: 'docProps/core.xml', data: HEAD + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+        '<dc:title>Shipping orders</dc:title><dc:creator>Shipping Workbook Converter</dc:creator>' +
+        '<dcterms:created xsi:type="dcterms:W3CDTF">' + iso + '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' + iso + '</dcterms:modified></cp:coreProperties>' },
+      { name: 'docProps/app.xml', data: HEAD + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Excel</Application></Properties>' },
+      { name: 'xl/workbook.xml', data: HEAD + '<workbook xmlns="' + NS + '" xmlns:r="' + NSR + '"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15000" activeTab="0"/></bookViews><sheets>' +
+        sheets.map(function (s, i) { return '<sheet name="' + s.name + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets>' +
+        (defined ? '<definedNames>' + defined + '</definedNames>' : '') + '</workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', data: HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        sheets.map(function (s, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') +
+        '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '<Relationship Id="rId' + (sheets.length + 2) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>' }
+    ];
+    sheets.forEach(function (s, i) { files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: s.xml }); });
+    files.push({ name: 'xl/styles.xml', data: st.xml() });
+    files.push({ name: 'xl/sharedStrings.xml', data: sst.xml() });
+    return zip(files, now);
+  }
+
+  /* ---------------- ZIP (stored) ---------------- */
+  var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function zip(entries, date) {
+    var enc = new TextEncoder(), parts = [], central = [], offset = 0;
+    var dt = ((date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1)) & 0xFFFF;
+    var dd = (((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()) & 0xFFFF;
+    entries.forEach(function (e) {
+      var name = enc.encode(e.name), data = typeof e.data === 'string' ? enc.encode(e.data) : e.data, crc = crc32(data);
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dt, true); lh.setUint16(12, dd, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), name, data);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dt, true); ch.setUint16(14, dd, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+      ch.setUint16(28, name.length, true); ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+      central.push(new Uint8Array(ch.buffer), name);
+      offset += 30 + name.length + data.length;
+    });
+    var cdSize = central.reduce(function (a, b) { return a + b.length; }, 0);
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
+    end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true); end.setUint16(20, 0, true);
+    var all = parts.concat(central, [new Uint8Array(end.buffer)]);
+    var out = new Uint8Array(all.reduce(function (a, b) { return a + b.length; }, 0)), p = 0;
+    all.forEach(function (b) { out.set(b, p); p += b.length; });
+    return out;
+  }
+
+  /* ---------------- Synthetic sample data (invented people, example.com emails) ---------------- */
+  function toCSV(header, rows, delim, eol) {
+    function q(v) { v = v == null ? '' : String(v); return /["\r\n]/.test(v) || v.indexOf(delim) >= 0 ? '"' + v.replace(/"/g, '""') + '"' : v; }
+    return [header.map(q).join(delim)].concat(rows.map(function (r) { return header.map(function (h) { return q(r[h]); }).join(delim); })).join(eol) + eol;
+  }
+  function sampleRows(o) {
+    var sub = o.lines.reduce(function (a, l) { return a + l.price * l.qty; }, 0), ship = o.ship == null ? (sub >= 60 ? 0 : 4.99) : o.ship;
+    var street = o.a1 + (o.a2 ? ', ' + o.a2 : '');
+    var base = { 'Name': o.name, 'Email': o.email, 'Financial Status': 'pending', 'Fulfillment Status': 'unfulfilled', 'Accepts Marketing': 'no', 'Currency': 'EUR',
+      'Subtotal': sub.toFixed(2), 'Shipping': ship.toFixed(2), 'Taxes': '0.00', 'Total': (sub + ship).toFixed(2), 'Discount Amount': '0.00',
+      'Shipping Method': ship ? 'Стандартна доставка' : 'Безплатна доставка', 'Created at': o.created,
+      'Billing Name': o.recipient, 'Billing Street': street, 'Billing Address1': o.a1, 'Billing Address2': o.a2 || '', 'Billing City': o.city, 'Billing Zip': "'" + o.zip,
+      'Billing Province': o.province || '', 'Billing Country': o.country || 'BG', 'Billing Phone': o.phone,
+      'Shipping Name': o.recipient, 'Shipping Street': street, 'Shipping Address1': o.a1, 'Shipping Address2': o.a2 || '', 'Shipping City': o.city, 'Shipping Zip': "'" + o.zip,
+      'Shipping Province': o.province || '', 'Shipping Country': o.country || 'BG', 'Shipping Phone': o.phone,
+      'Notes': o.notes || '', 'Cancelled at': o.cancelled || '', 'Payment Method': 'Cash on Delivery (COD)', 'Refunded Amount': '0.00',
+      'Outstanding Balance': (sub + ship).toFixed(2), 'Id': o.id, 'Tags': o.tags || '', 'Risk Level': 'Low', 'Source': 'web', 'Payment ID': 'demo-' + o.id, 'Payment References': 'demo-' + o.id };
+    return o.lines.map(function (l, i) {
+      var r = i === 0 ? Object.assign({}, base) : { 'Name': o.name, 'Email': o.email, 'Created at': o.created };
+      Object.assign(r, { 'Lineitem quantity': String(l.qty), 'Lineitem name': l.title, 'Lineitem price': l.price.toFixed(2), 'Lineitem compare at price': (l.price + 10).toFixed(2),
+        'Lineitem sku': l.sku, 'Lineitem requires shipping': 'true', 'Lineitem taxable': 'true', 'Lineitem fulfillment status': 'pending', 'Vendor': 'DemoStore', 'Lineitem discount': '0.00' });
+      return r;
+    });
+  }
+  var P = {
+    blue: { title: 'Спално бельо Памук – Синьо - Комплект 6 части', sku: 'DEMO-BED-BLUE-S6', price: 32.99 },
+    rose: { title: 'Спално бельо Сатен – Пепел от рози - Комплект 4 части', sku: 'DEMO-BED-ROSE-D4', price: 39.99 },
+    duvet: { title: 'Олекотена завивка - 200×220 см', sku: 'DEMO-DUVET-200X220', price: 31.99 },
+    pillow: { title: 'Комплект 2 възглавници „Облак“ - 50×70 см', sku: 'DEMO-PILLOW-50X70', price: 19.99 },
+    towel: { title: 'Хавлиена кърпа Бамбук – Бяла', sku: 'DEMO-TOWEL-W', price: 12.50 }
+  };
+  function L(p, qty) { return { title: p.title, sku: p.sku, price: p.price, qty: qty || 1 }; }
+  var O = {
+    o2001: { name: '#2001', id: '9000000002001', email: 'ivan.testov@example.com', created: '2026-11-02 09:15:00 +0200', recipient: 'Иван Тестов', a1: 'ул. Примерна 12', a2: 'вх. Б\nет. 3, ап. 12', city: 'София', zip: '1000', phone: '0888000101', lines: [L(P.blue), L(P.pillow, 2), L(P.towel, 3)] },
+    o2002: { name: '#2002', id: '9000000002002', email: 'Maria.Testova@Example.com', created: '2026-11-02 11:40:00 +0200', recipient: 'Мария Тестова', a1: 'Офис Еконт – Пловдив Тест', city: 'Пловдив', zip: '4000', phone: '+359888000102', notes: 'Моля, обадете се преди доставка.\nСлед 17:00 ч.', lines: [L(P.rose)] },
+    o2003: { name: '#2003', id: '9000000002003', email: 'georgi@example.org', created: '2026-11-03 08:05:00 +0200', recipient: 'Георги Примеров', a1: 'ж.к. Тестов, бл. 5', a2: 'ет. 2', city: 'Варна', zip: '9000', phone: '0888000103', lines: [L(P.duvet), L(P.pillow)] },
+    o2004: { name: '#2004', id: '9000000002004', email: 'elena.probna@example.com', created: '2026-11-03 13:30:00 +0200', recipient: 'Елена Пробна', a1: 'бул. Демо 7', city: 'Бургас', zip: '8000', phone: '0888000104', notes: '=2+2 (must stay plain text, "not a formula")', tags: '@vip', lines: [L(P.blue)] },
+    o2005: { name: '#2005', id: '9000000002005', email: 'lucia@example.com', created: '2026-11-04 10:00:00 +0200', recipient: 'Lucia Esempio', a1: 'Via di Prova 3', city: 'Roma', zip: '00184', province: 'RM', country: 'IT', phone: '+390612345678', ship: 9.99, lines: [L(P.rose, 2)] },
+    o2006: { name: '#2006', id: '9000000002006', email: '', created: '2026-11-04 16:20:00 +0200', recipient: 'Петър Демов', a1: 'ул. Опитна 21', city: 'Русе', zip: '7000', phone: '888000106', lines: [L(P.towel, 2)] },
+    o2007: { name: '#2007', id: '9000000002007', email: ' maria.testova@example.com ', created: '2026-11-05 09:00:00 +0200', recipient: 'Мария Тестова', a1: 'Офис Еконт – Пловдив Тест', city: 'Пловдив', zip: '4000', phone: '+359888000102', lines: [L(P.duvet), L(P.towel)] },
+    o2008: { name: '#2008', id: '9000000002008', email: 'georgi@example.org', created: '2026-11-05 12:10:00 +0200', recipient: 'Георги Примеров', a1: 'Офис Спиди – София Тест', city: 'София', zip: '1000', phone: '0888000103', lines: [L(P.blue)] },
+    o2009: { name: '#2009', id: '9000000002009', email: '', created: '2026-11-06 07:45:00 +0200', recipient: 'Анна Образцова', a1: 'ул. Пробна 4', city: 'Стара Загора', zip: '6000', phone: '', lines: [L(P.rose), L(P.pillow)] },
+    o2010: { name: '#2010', id: '9000000002010', email: 'stoyan@example.com', created: '2026-11-06 10:30:00 +0200', recipient: 'Стоян Макетов', a1: 'ул. Макетна 9', city: 'Плевен', zip: '5800', phone: '0888000110', cancelled: '2026-11-06 11:00:00 +0200', lines: [L(P.towel)] },
+    // Same phone and name as #2006 (which has no email) → same customer.
+    o2011: { name: '#2011', id: '9000000002011', email: 'petar.demov@example.com', created: '2026-11-07 09:30:00 +0200', recipient: 'Петър Демов', a1: 'ул. Опитна 21', city: 'Русе', zip: '7000', phone: '888000106', lines: [L(P.pillow)] }
+  };
+  function sampleFiles() {
+    var o2004b = Object.assign({}, O.o2004, { phone: '0888000999' });
+    var file1 = [O.o2001, O.o2002, O.o2003, O.o2004, O.o2005, O.o2006].reduce(function (a, o) { return a.concat(sampleRows(o)); }, []);
+    var file2 = [O.o2007, O.o2001, O.o2008, o2004b, O.o2009, O.o2010, O.o2011].reduce(function (a, o) { return a.concat(sampleRows(o)); }, []);
+    var shuffled = SHOPIFY_COLUMNS.slice().reverse();      // second file: columns in a different order
+    return [
+      { name: 'sample-orders-week-1.csv', text: toCSV(SHOPIFY_COLUMNS, file1, ',', '\n') },
+      { name: 'sample-orders-week-2.csv', text: '﻿' + toCSV(shuffled, file2, ';', '\r\n') }
+    ];
+  }
+
+  return { OUTPUT: OUTPUT, COL: COL, PHOTO_HEADER: PHOTO_HEADER, SHOPIFY_COLUMNS: SHOPIFY_COLUMNS, ESSENTIAL: ESSENTIAL,
+    decode: decode, detectDelimiter: detectDelimiter, parseCSV: parseCSV, convert: convert, buildXlsx: buildXlsx,
+    sampleFiles: sampleFiles, toCSV: toCSV, sampleRows: sampleRows, PHOTO_WIDTH: PHOTO_WIDTH, PHOTO_ROW_PT: PHOTO_ROW_PT,
+    pieceCount: pieceCount, manyProducts: manyProducts };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+/*CORE-END*/
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var state = { files: [], nextId: 1, excluded: {}, result: null, view: 'grouped', open: {} };
+  var $ = function (id) { return document.getElementById(id); };
+
+  window.addEventListener('error', function (e) { showFatal(e.message || String(e)); });
+  window.addEventListener('unhandledrejection', function (e) { showFatal((e.reason && e.reason.message) || String(e.reason)); });
+  function showFatal(msg) { var f = $('fatal'); f.hidden = false; f.textContent = 'Something went wrong: ' + msg + '\nYour files were not changed. Try “Clear all data” and import again.'; }
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k]; if (v == null || v === false) return;
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? '' : v);
+    });
+    (kids || []).forEach(function (c) { if (c == null || c === false) return; n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+  var C = Core.COL;
+  function val(o, name) { return (o.first[C[name]] || '').trim(); }
+  var SEV_WORDS = { error: ['Error', 'error', 'errors'], warning: ['Warning', 'warning', 'warnings'], info: ['Note', 'note', 'notes'] };
+  function sevBadge(sev, n) {
+    var w = SEV_WORDS[sev];
+    return el('span', { class: 'sev ' + sev, text: n == null ? w[0] : n + ' ' + (n === 1 ? w[1] : w[2]) });
+  }
+
+  /* ---------- import ---------- */
+  function addFiles(list) {
+    var arr = Array.prototype.slice.call(list || []);
+    if (!arr.length) return;
+    Promise.all(arr.map(function (file) {
+      return file.arrayBuffer().then(function (buf) { return { id: state.nextId++, name: file.name, bytes: new Uint8Array(buf) }; });
+    })).then(function (loaded) { state.files = state.files.concat(loaded); recompute(); });
+  }
+  function addSample() {
+    var enc = new TextEncoder();
+    state.files = state.files.concat(Core.sampleFiles().map(function (s) { return { id: state.nextId++, name: s.name, bytes: enc.encode(s.text) }; }));
+    recompute();
+  }
+  function clearAll() {
+    state.files = []; state.excluded = {}; state.result = null; state.open = {};
+    $('fileInput').value = ''; $('search').value = '';
+    render();
+  }
+  function recompute() {
+    state.result = state.files.length ? Core.convert(state.files, state.excluded) : null;
+    render();
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    renderFiles();
+    var r = state.result;
+    $('results').hidden = !r;
+    if (!r) { $('grouped').textContent = ''; $('tableView').textContent = ''; $('warnBody').textContent = ''; return; }
+    $('nCustomers').textContent = r.counts.customers;
+    $('nOrders').textContent = r.counts.orders;
+    $('nRows').textContent = r.counts.productRows;
+    $('downloadBtn').disabled = r.rows.length === 0;
+    $('dlNote').textContent = r.rows.length
+      ? r.counts.productRows + ' product rows from ' + r.counts.inputRows + ' imported rows' + (r.counts.excludedOrders ? ' · ' + r.counts.excludedOrders + ' order cop' + (r.counts.excludedOrders > 1 ? 'ies' : 'y') + ' excluded by you' : '') + '. Warnings are included as a sheet.'
+      : 'Nothing to download yet.';
+    renderWarnings(r);
+    renderPreview();
+  }
+
+  function renderFiles() {
+    var ul = $('fileList'); ul.textContent = '';
+    var r = state.result;
+    state.files.forEach(function (inf) {
+      var f = r && r.files.filter(function (x) { return x.id === inf.id; })[0];
+      var meta = f ? (f.processed
+        ? [f.encoding, (f.delimiter === ',' ? 'comma' : f.delimiter === ';' ? 'semicolon' : f.delimiter) + '-separated', f.dataRows + ' rows', f.orders.length + ' orders'].join(' · ')
+        : 'Not processed') : '';
+      var li = el('li', { class: 'file' }, [
+        el('div', { class: 'head' }, [
+          el('div', null, [el('div', { class: 'fname', text: inf.name }), el('div', { class: 'meta', text: meta })]),
+          el('button', { class: 'x', type: 'button', title: 'Remove this file', 'aria-label': 'Remove ' + inf.name, onclick: function () { removeFile(inf.id); } }, ['×'])
+        ])
+      ]);
+      if (f && f.issues.length) li.appendChild(el('ul', null, f.issues.map(function (is) { return el('li', null, [sevBadge(is.sev), is.msg]); })));
+      if (f && f.leftOut.length) li.appendChild(el('details', null, [el('summary', { class: 'meta', text: f.leftOut.length + ' Shopify columns left out on purpose (not needed for shipping)' }), el('div', { class: 'meta', text: f.leftOut.join(', ') })]));
+      ul.appendChild(li);
+    });
+  }
+  function removeFile(id) {
+    state.files = state.files.filter(function (f) { return f.id !== id; });
+    Object.keys(state.excluded).forEach(function (k) { if (k.split(':')[0] === String(id)) delete state.excluded[k]; });
+    recompute();
+  }
+
+  function renderWarnings(r) {
+    var box = $('warnBody'); box.textContent = '';
+    var c = r.counts;
+    box.appendChild(el('p', { class: 'hint' }, [sevBadge('error', c.errors), sevBadge('warning', c.warnings), sevBadge('info', c.infos),
+      c.errors ? ' Fix or confirm errors before shipping.' : (c.warnings ? ' Review the warnings before shipping.' : ' No problems found.')]));
+    ['error', 'warning', 'info'].forEach(function (sev) {
+      var list = r.issues.filter(function (x) { return x.sev === sev; });
+      if (!list.length) return;
+      var shown = list.slice(0, 200);
+      var d = el('details', { class: 'sevgroup', open: sev !== 'info' ? true : null }, [
+        el('summary', null, [sevBadge(sev, list.length)]),
+        el('ul', { class: 'issues' }, shown.map(function (is) {
+          var where = [is.file ? '“' + is.file + '”' : '', is.rows && is.rows.indexOf(',') < 0 ? 'row ' + is.rows : ''].filter(Boolean).join(' ');
+          return el('li', null, [
+            is.order ? el('button', { class: 'chip', type: 'button', title: 'Show in preview', onclick: function () { jumpTo(is.order.split(',')[0].trim()); } }, [is.order]) : null,
+            ' ', is.msg, where ? el('span', { class: 'meta', text: ' — ' + where }) : null]);
+        }))
+      ]);
+      if (list.length > shown.length) d.appendChild(el('p', { class: 'hint', text: (list.length - shown.length) + ' more are listed in the workbook\'s Warnings sheet.' }));
+      box.appendChild(d);
+    });
+  }
+  function jumpTo(q) {
+    $('search').value = q;
+    setView('grouped');
+    renderPreview(true);
+    var first = document.querySelector('#grouped details.group');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function groupText(grp) {
+    var parts = [grp.email];
+    grp.orders.forEach(function (o) { parts.push(o.name, o.name.replace(/^#/, ''), val(o, 'Shipping Name'), val(o, 'Id'), val(o, 'Email')); });
+    return parts.join('\n').toLowerCase();
+  }
+  function matches() {
+    var q = $('search').value.trim().toLowerCase();
+    var groups = state.result.groups.filter(function (g) { return g.orders.some(function (o) { return !o.excluded; }) || g.orders.some(function (o) { return o.dupIssue; }); });
+    return { q: q, list: q ? groups.filter(function (g) { return groupText(g).indexOf(q) >= 0; }) : groups, total: groups.length };
+  }
+
+  function renderPreview(openAll) {
+    var m = matches();
+    var hint = $('searchHint'); hint.textContent = '';
+    hint.appendChild(document.createTextNode(m.q ? m.list.length + ' of ' + m.total + ' customers match “' + $('search').value.trim() + '”. ' : 'Click a customer to see their orders and products. '));
+    if (state.result.rows.some(function (r) { return r.multi; }))
+      hint.appendChild(el('span', null, [el('span', { class: 'swatch', 'aria-hidden': 'true' }), 'Yellow = a customer with more than one order (same email, or same phone and name), or an order with more than one product.']));
+    if (state.view === 'grouped') renderGrouped(m, openAll); else renderTable(m);
+  }
+
+  function renderGrouped(m, openAll) {
+    var box = $('grouped'); box.textContent = '';
+    if (!m.list.length) { box.appendChild(el('p', { class: 'empty', text: 'No matching customers.' })); return; }
+    var LIMIT = 300;
+    m.list.slice(0, LIMIT).forEach(function (grp) {
+      var inc = grp.orders.filter(function (o) { return !o.excluded; });
+      var items = inc.reduce(function (a, o) { return a + o.lines.length; }, 0);
+      var names = []; grp.orders.forEach(function (o) { var n = val(o, 'Shipping Name'); if (n && names.indexOf(n) < 0) names.push(n); });
+      var sevs = { error: 0, warning: 0 };
+      grp.issues.concat.apply(grp.issues, grp.orders.map(function (o) { return o.issues.concat(o.dupIssue ? [o.dupIssue] : []); })).forEach(function (is) { if (sevs[is.sev] != null) sevs[is.sev]++; });
+      var title = grp.email || ('No email · order ' + (grp.orders[0].name || 'without number'));
+      var sameCustomer = inc.length > 1, manyOrders = inc.filter(Core.manyProducts);
+      var multi = sameCustomer || manyOrders.length > 0;
+      var d = el('details', { class: multi ? 'group multi' : 'group', open: (openAll && m.q) || state.open[grp.key] ? true : null }, [
+        el('summary', null, [
+          el('span', { class: 'gtitle', text: title }),
+          el('span', { class: 'gsub', text: [names.join(', '), inc.length + ' order' + (inc.length !== 1 ? 's' : ''), items + ' product row' + (items !== 1 ? 's' : '')].filter(Boolean).join(' · ') }),
+          el('span', { class: 'badges' }, [sameCustomer ? el('span', { class: 'sev multi', text: 'Same customer · ' + inc.length + ' orders' }) : null,
+            manyOrders.length ? el('span', { class: 'sev multi', text: manyOrders.length === 1 ? Core.pieceCount(manyOrders[0]) + ' products in one order' : manyOrders.length + ' orders with more than 1 product' }) : null,
+            sevs.error ? sevBadge('error', sevs.error) : null, sevs.warning ? sevBadge('warning', sevs.warning) : null])
+        ])
+      ]);
+      var filled = false;
+      function fill() {
+        if (filled) return; filled = true;
+        var body = el('div', { class: 'gbody' });
+        if (grp.issues.length) body.appendChild(el('ul', { class: 'issues' }, grp.issues.map(function (is) { return el('li', null, [sevBadge(is.sev), is.msg]); })));
+        grp.orders.forEach(function (o) { body.appendChild(orderView(o, openAll && m.q)); });
+        d.appendChild(body);
+      }
+      d.addEventListener('toggle', function () { if (d.open) { state.open[grp.key] = true; fill(); } else delete state.open[grp.key]; });
+      if (d.open) fill();
+      box.appendChild(d);
+    });
+    if (m.list.length > LIMIT) box.appendChild(el('p', { class: 'hint', text: 'Showing the first ' + LIMIT + ' customers. Use search to find others — the workbook contains all of them.' }));
+  }
+
+  function orderView(o, forceOpen) {
+    var tot = val(o, 'Total'), cur = val(o, 'Currency');
+    var issues = o.issues.concat(o.dupIssue ? [o.dupIssue] : []);
+    var nErr = issues.filter(function (i) { return i.sev === 'error'; }).length, nWarn = issues.filter(function (i) { return i.sev === 'warning'; }).length;
+    var summaryBits = [val(o, 'Shipping Name'), val(o, 'Shipping City'), tot ? 'Total ' + tot + (cur ? ' ' + cur : '') : ''].filter(Boolean).join(' · ');
+    var d = el('details', { class: 'order' + (o.excluded ? ' excluded' : ''), open: forceOpen || state.open['o' + o.key] ? true : null }, [
+      el('summary', null, [
+        el('span', { class: 'oid', text: o.name || ('Row ' + o.firstRow) }),
+        el('span', { class: 'gsub', text: summaryBits + (o.excluded ? ' · excluded' : '') }),
+        el('span', { class: 'badges' }, [Core.manyProducts(o) ? el('span', { class: 'sev multi', text: Core.pieceCount(o) + ' products' }) : null,
+          nErr ? sevBadge('error', nErr) : null, nWarn ? sevBadge('warning', nWarn) : null])
+      ])
+    ]);
+    d.addEventListener('toggle', function () { if (d.open) state.open['o' + o.key] = true; else delete state.open['o' + o.key]; });
+    var body = el('div', { class: 'obody' });
+    if (issues.length) body.appendChild(el('ul', { class: 'issues' }, issues.map(function (is) { return el('li', null, [sevBadge(is.sev), is.msg]); })));
+    var addr = [val(o, 'Shipping Address1'), val(o, 'Shipping Address2'), [val(o, 'Shipping Zip'), val(o, 'Shipping City')].filter(Boolean).join(' ')].filter(Boolean).join('\n');
+    var kv = [['Recipient', val(o, 'Shipping Name')], ['Address', addr], ['Phone', val(o, 'Shipping Phone')], ['Email', val(o, 'Email')],
+      ['Payment', [val(o, 'Payment Method'), val(o, 'Fulfillment Status')].filter(Boolean).join(' · ')],
+      ['Total', tot ? tot + (cur ? ' ' + cur : '') : ''], ['File', '“' + o.fileName + '” row ' + o.firstRow]];
+    body.appendChild(el('dl', { class: 'kv' }, kv.reduce(function (a, p) { return p[1] ? a.concat([el('dt', { text: p[0] }), el('dd', { text: p[1] })]) : a; }, [])));
+    var t = el('table', null, [el('thead', null, [el('tr', null, ['Qty', 'Product', 'SKU', 'Price'].map(function (h) { return el('th', { text: h }); }))]),
+      el('tbody', null, o.lines.map(function (l) {
+        return el('tr', null, [el('td', { class: 'num', text: l.out[C['Lineitem quantity']] }), el('td', { text: l.out[C['Lineitem name']] }),
+          el('td', { text: l.out[C['Lineitem sku']] }), el('td', { class: 'num', text: l.out[C['Lineitem price']] })]);
+      }))]);
+    body.appendChild(el('div', { class: 'tablewrap' }, [t]));
+    if (o.dupIssue) {
+      var cb = el('input', { type: 'checkbox', checked: o.excluded ? true : null, onchange: function (e) {
+        if (e.target.checked) state.excluded[o.key] = true; else delete state.excluded[o.key];
+        recompute();
+      } });
+      body.appendChild(el('label', { class: 'excl' }, [cb, 'Exclude this copy (from “' + o.fileName + '”) from the workbook']));
+    }
+    d.appendChild(body);
+    return d;
+  }
+
+  function renderTable(m) {
+    var box = $('tableView'); box.textContent = '';
+    var keys = {}; m.list.forEach(function (g) { keys[g.key] = true; });
+    var rows = state.result.rows.filter(function (r) { return keys[r.group.key]; });
+    var LIMIT = 300, head = [Core.PHOTO_HEADER].concat(Core.OUTPUT.map(function (c) { return c.label; }));
+    var types = ['photo'].concat(Core.OUTPUT.map(function (c) { return c.type; }));
+    var t = el('table', { class: 'grid' }, [el('thead', null, [el('tr', null, head.map(function (h) { return el('th', { text: h }); }))]),
+      el('tbody', null, rows.slice(0, LIMIT).map(function (r) {
+        return el('tr', { class: r.multi ? 'multi' : null },
+          r.values.map(function (v, i) { return types[i] === 'photo' ? el('td', null, [el('div', { class: 'photo', title: 'Empty — add the photo in Excel' })]) : el('td', { class: types[i] === 'text' ? null : 'num', text: v }); }));
+      }))]);
+    box.appendChild(el('div', { class: 'tablewrap' }, [t]));
+    box.appendChild(el('p', { class: 'hint', text: rows.length > LIMIT ? 'Showing the first ' + LIMIT + ' of ' + rows.length + ' rows. The workbook contains all rows.' : rows.length + ' product rows. Product Photo stays empty for photos you add in Excel.' }));
+  }
+
+  function setView(v) {
+    state.view = v;
+    $('viewGrouped').setAttribute('aria-pressed', String(v === 'grouped'));
+    $('viewTable').setAttribute('aria-pressed', String(v === 'table'));
+    $('grouped').hidden = v !== 'grouped';
+    $('tableView').hidden = v !== 'table';
+  }
+
+  /* ---------- download ---------- */
+  function download() {
+    if (!state.result || !state.result.rows.length) return;
+    var now = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var bytes = Core.buildXlsx(state.result, { now: now });
+    var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var url = URL.createObjectURL(blob);
+    var a = el('a', { href: url, download: 'shipping-orders-' + now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes()) + '.xlsx' });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  }
+
+  /* ---------- wiring ---------- */
+  var drop = $('drop'), input = $('fileInput');
+  drop.addEventListener('click', function () { input.click(); });
+  drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  input.addEventListener('change', function () { addFiles(input.files); input.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (e) { addFiles(e.dataTransfer && e.dataTransfer.files); });
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+  $('sampleBtn').addEventListener('click', addSample);
+  $('clearBtn').addEventListener('click', clearAll);
+  $('downloadBtn').addEventListener('click', download);
+  $('viewGrouped').addEventListener('click', function () { setView('grouped'); renderPreview(); });
+  $('viewTable').addEventListener('click', function () { setView('table'); renderPreview(); });
+  var timer; $('search').addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(function () { renderPreview(true); }, 150); });
+
+  render();
+  if (location.hash === '#sample') addSample();
+})();
+</script>
+</body>
+</html>
