@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../components/Icon';
+import { consumeLoginStartedHere, markLoginStartedHere } from '../auth/loginOrigin';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { supabase } from '../lib/supabase';
 
@@ -18,11 +19,13 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
+      markLoginStartedHere();
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
       if (authError) {
+        consumeLoginStartedHere();
         setError(
           authError.code === 'invalid_credentials' || authError.status === 400
             ? 'invalid'

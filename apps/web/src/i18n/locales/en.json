@@ -12,7 +12,8 @@
     "products": "Products",
     "stock": "Stock",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "connectionCheck": "Connection check"
   },
   "pages": {
     "comingSoon": "This page is still being built.",
@@ -61,7 +62,9 @@
     "noAccess": {
       "title": "No access",
       "body": "You signed in, but your account has not been added to the shop or has been disabled. Call the owner."
-    }
+    },
+    "accountSwitched": "{{name}} signed in on this browser, so this window now works as {{name}} too. One browser = one person. For two people on one computer, use a separate browser (for example Edge) or an incognito window (Ctrl+Shift+N).",
+    "accountSwitchedDismiss": "Got it"
   },
   "topbar": {
     "signedInAs": "Signed in as {{name}}",

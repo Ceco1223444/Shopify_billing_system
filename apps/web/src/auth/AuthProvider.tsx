@@ -1,7 +1,16 @@
 import type { MemberRole } from '@happyhome/core';
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { supabase } from '../lib/supabase';
+import { consumeLoginStartedHere } from './loginOrigin';
 
 export interface Member {
   id: string;
@@ -20,6 +29,12 @@ export type AuthState =
 interface AuthContextValue {
   state: AuthState;
   signOut: () => Promise<void>;
+  /**
+   * True when another tab of this browser signed in as a different person and this
+   * window silently became that person (browsers share one login across all tabs).
+   */
+  accountSwitchedElsewhere: boolean;
+  dismissAccountSwitched: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -32,10 +47,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     member: Member | null;
   } | null>(null);
 
+  const [accountSwitchedElsewhere, setAccountSwitchedElsewhere] = useState(false);
+  // The last person this tab was signed in as (kept across a sign-out).
+  const lastUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) lastUserIdRef.current = data.session.user.id;
+      setSession(data.session);
+    });
     // Keep this callback synchronous: calling Supabase from inside it can deadlock.
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      const nextUserId = next?.user.id ?? null;
+      if (event === 'SIGNED_IN' && nextUserId) {
+        const startedHere = consumeLoginStartedHere();
+        if (startedHere) {
+          setAccountSwitchedElsewhere(false);
+        } else if (lastUserIdRef.current && lastUserIdRef.current !== nextUserId) {
+          setAccountSwitchedElsewhere(true);
+        }
+      }
+      if (nextUserId) lastUserIdRef.current = nextUserId;
+      setSession(next);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -80,8 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
       },
+      accountSwitchedElsewhere,
+      dismissAccountSwitched: () => setAccountSwitchedElsewhere(false),
     }),
-    [state],
+    [state, accountSwitchedElsewhere],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
