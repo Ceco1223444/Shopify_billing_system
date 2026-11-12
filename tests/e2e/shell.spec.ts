@@ -25,10 +25,11 @@ test('a login that is not a shop member sees "Нямате достъп"', async
   await expect(page.getByRole('heading', { name: 'Нямате достъп' })).toBeVisible();
 });
 
-test('the shell shows all six sections and switches between Bulgarian and English', async ({
+test('the shell shows the owner all six sections and switches between Bulgarian and English', async ({
   openAs,
 }) => {
-  const page = await openAs(TEST_USERS.packer);
+  // Packers see five: importing is the owner's job (Phase 2, see import.spec.ts).
+  const page = await openAs(TEST_USERS.owner);
   await expect(page).toHaveURL(/\/shipments$/);
   const nav = page.getByRole('navigation', { name: 'Основно меню' });
   for (const name of ['Пратки', 'Внасяне', 'Продукти', 'Наличност', 'Отчети', 'Настройки']) {
