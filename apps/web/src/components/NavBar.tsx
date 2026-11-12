@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
+import { useMember } from '../auth/AuthProvider';
 import { devPagesEnabled } from '../lib/supabase';
 
 const NAV_ITEMS = [
   { to: '/shipments', key: 'shipments', icon: '📦' },
-  { to: '/import', key: 'import', icon: '📥' },
+  // Importing Shopify files is the owner's job (Phase 2): packers don't see it.
+  { to: '/import', key: 'import', icon: '📥', ownerOnly: true },
   { to: '/products', key: 'products', icon: '🛏️' },
   { to: '/stock', key: 'stock', icon: '🗃️' },
   { to: '/reports', key: 'reports', icon: '📊' },
@@ -18,10 +20,12 @@ const ITEMS = devPagesEnabled ? [...NAV_ITEMS, DEV_ITEM] : NAV_ITEMS;
 
 export function NavBar() {
   const { t } = useTranslation();
+  const member = useMember();
+  const items = ITEMS.filter((item) => !('ownerOnly' in item) || member.role === 'owner');
   return (
     <nav className="nav" aria-label={t('nav.label')}>
       <ul>
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <li key={item.to} className={item === DEV_ITEM ? 'nav-dev' : undefined}>
             <NavLink to={item.to}>
               <span aria-hidden="true">{item.icon}</span> {t(`nav.${item.key}`)}

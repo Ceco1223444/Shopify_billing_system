@@ -12,6 +12,9 @@ const ICONS = {
   wait: '⏳',
   eyes: '👀',
   check: '✔',
+  /** same customer / many products (the legacy yellow rows) */
+  multi: '◆',
+  drag: '⠿',
 } as const;
 
 export type IconName = keyof typeof ICONS;

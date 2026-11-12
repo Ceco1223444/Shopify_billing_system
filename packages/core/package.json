@@ -4,6 +4,7 @@
   "private": true,
   "description": "Pure TypeScript domain logic for HappyHome Shipping Hub. No I/O.",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
     "./import": "./src/import/index.ts"
