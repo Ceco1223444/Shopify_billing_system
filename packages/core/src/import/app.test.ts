@@ -262,7 +262,9 @@ describe('batch view rebuilt from stored data', () => {
       expect(shape(view.rows)).toEqual(shape(result.rows));
       const now = new Date(2026, 10, 12, 10, 0, 0);
       const fromDb = buildXlsx({ ...result, rows: view.rows }, { now });
-      expect(Buffer.from(fromDb).equals(Buffer.from(buildXlsx(result, { now })))).toBe(true);
+      const legacyBytes = buildXlsx(result, { now });
+      expect(fromDb.length).toBe(legacyBytes.length);
+      expect(fromDb.every((b, k) => b === legacyBytes[k])).toBe(true);
     });
   }
 
