@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import {
   importOneFile,
   type ImportCounts,
+  type ImportFailure,
   type ImportOutcome,
   type ImportStage,
 } from './runImport';
@@ -76,6 +77,14 @@ export function ArchiveStateText({ batch }: { batch: BatchRow }) {
     : t('import.archive.stored');
 }
 
+const FAILURE_TEXT = {
+  offline: 'import.failedOffline',
+  not_ready: 'import.failedNotReady',
+  service: 'import.failedService',
+  owner_only: 'import.failedOwnerOnly',
+  other: 'import.failed',
+} as const satisfies Record<ImportFailure, string>;
+
 function JobCard({ job }: { job: FileJob }) {
   const { t } = useTranslation();
   const o = job.outcome;
@@ -127,12 +136,7 @@ function JobCard({ job }: { job: FileJob }) {
       )}
       {o?.kind === 'failed' && (
         <p className="badge badge-error" role="alert" data-testid="import-failed">
-          <Icon name="error" />{' '}
-          {o.reason === 'offline'
-            ? t('import.failedOffline')
-            : o.reason === 'owner_only'
-              ? t('import.failedOwnerOnly')
-              : t('import.failed')}
+          <Icon name="error" /> {t(FAILURE_TEXT[o.reason])}
         </p>
       )}
     </li>

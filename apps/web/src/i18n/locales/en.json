@@ -146,6 +146,8 @@
     "failed": "The import failed and nothing was saved. Try again in a moment.",
     "failedOffline": "No connection to the server. Nothing was saved. Check the internet and try again.",
     "failedOwnerOnly": "Only the owner can import orders.",
+    "failedNotReady": "The server is not set up for importing yet: the database does not have the Phase 2 update. Nothing was saved.",
+    "failedService": "The database answers, but the import service (import-batch) does not. Nothing was saved. If this keeps happening, the service is not installed on the server.",
     "history": {
       "title": "Imported files",
       "empty": "No files imported yet.",
