@@ -1,12 +1,12 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 13 Nov 2026, end of **Phase 2 — Import Shopify CSV batches** (branch `phase-2-import`).
+Last updated: 13 Nov 2026, end of **Phase 2 — Import Shopify CSV batches**.
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
-| 2 Import Shopify CSV batches | Built on branch `phase-2-import`. All local checks green: lint, typecheck, 62 core + 20 web unit tests, 92 integration tests, 14 e2e tests. CI green on GitHub (both jobs, [run 43321387482](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43321387482)). Waiting for the owner before merging to `main` + tag `phase-2`: the two brief differences below, and the check with real exports. Hosted: migration `20261113120000_import_batches` and the `import-batch` Edge Function are **not** pushed yet (steps 16–17). The owner's check with real exports is still to do (step 18). |
+| 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
 | 3–13 | Not started |
 
 ## Setup (15 steps)
@@ -136,7 +136,7 @@ Tests: `apps/web/src/lib/realtime.test.ts` (unit) and `tests/e2e/reconnect.spec.
 
 Phase 2:
 
-- **Two differences from the brief (MASTER_PROMPT). I followed the Phase 2 spec; please confirm:**
+- **Two differences from the brief (MASTER_PROMPT). I followed the Phase 2 spec (deployed to hosted on 13 Nov 2026 at the owner's request):**
   1. The brief says a packer "can do everything else". Phase 2 says import is owner-only ("Packers MUST NOT see or use it"). Import, the batch screens and the raw files are owner-only (RLS, Edge Function and UI).
   2. The brief says raw CSVs are "deleted automatically after `raw_csv_retention_days`". Phase 2 says a raw CSV must never be deleted before its archive copy is confirmed. So after 90 days a file only becomes "Чака архивиране". It is deleted once the copy on the owner's computer has been checked.
 - Hidden by default: **nothing** (P2-11). The prompt pack's `<<LIST THE COLUMNS YOU WANT REMOVED>>` was never filled in; hide columns in Settings.
