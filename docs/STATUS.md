@@ -5,7 +5,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 
 | Phase | State |
 |---|---|
-| 1 Foundation | Done. CI green on GitHub (both jobs, [run 43278493221](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43278493221)). Hosted project: migrations **not pushed yet** (needs your project ref, step 9 below). |
+| 1 Foundation | Done. CI green on GitHub (both jobs, [run 43278493221](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43278493221)). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
 | 2–13 | Not started |
 
 ## Setup (15 steps)
@@ -23,8 +23,8 @@ Local development (everything runs on your computer, nothing touches the hosted 
 
 Hosted Supabase project (EU / Frankfurt):
 
-9. `pnpm exec supabase login`, then `pnpm exec supabase link --project-ref <your project ref>`.
-10. `pnpm exec supabase db push` applies the 5 migrations (tables, grants, RLS, realtime, buckets, settings).
+9. In a normal PowerShell window (not via `!` in Claude Code: login needs an interactive terminal) run `pnpm exec supabase login` and enter the verification code shown in the browser. Then `pnpm exec supabase link --project-ref nugmzqjdvmzhitgzhhit`.
+10. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote`. In CLI v3, `db push` targets the local stack unless you pass `--remote`. No database password is needed.
 11. In the dashboard: **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up" and keep Email on. **Realtime → Settings**: turn **off** "Allow public access" (the app only uses private channels). Leave Data API on, auto-expose OFF and automatic RLS ON as they are.
 12. Create `.env.admin` in the repo root (git-ignored) with `SUPABASE_URL=` and `SUPABASE_SECRET_KEY=` from **Project Settings → API Keys**. The secret key bypasses every rule: keep it only on your own computer.
 13. `pnpm member:add --env-file .env.admin --email … --name "Ceco" --role owner`, then the same for Мама and Тате with `--role packer`.
@@ -74,7 +74,9 @@ Hosted Supabase project (EU / Frankfurt):
 
 ## Known gaps
 
-- Hosted project: migrations not pushed and members not created yet (steps 9–13; I need your project ref, and you run `supabase login` yourself).
+- Hosted project: migrations are pushed. Still to do by the owner: sign-ups off, Realtime public access off, `.env.admin`, creating the members, `.env.hosted.local` (steps 11–14).
+- The hosted project is in **eu-west-1 (Ireland)**, not Frankfurt. That is still EU, as the brief requires. The owner chose to keep it on 12 Nov 2026.
+- Hosted advisors show 2 WARN items for `public.rls_auto_enable()`. Supabase created that function for the "automatic RLS" setting; our migrations did not. It is SECURITY DEFINER and `anon` / `authenticated` may EXECUTE it. A live call through `/rest/v1/rpc/rls_auto_enable` fails (`0A000 cannot display a value of type event_trigger`), and the function only works inside an event trigger. Not exploitable as far as we can tell. Optional clean-up: revoke EXECUTE from anon/authenticated (waiting for the owner's OK).
 - PWA install (manifest + service worker) is left for Phase 12, where the prompt pack puts the install prompt.
 - `apps/desktop` is only a placeholder (Phase 12).
 - The web bundle is 542 kB (159 kB gzipped). Vite warns above 500 kB; code-splitting can wait for Phase 12.
@@ -84,4 +86,6 @@ Hosted Supabase project (EU / Frankfurt):
 ## API / tool differences found
 
 - Supabase CLI 3.x reports **publishable / secret** keys (`sb_publishable_…`, `sb_secret_…`) next to the legacy anon / service_role JWTs. The app and scripts use the new keys and fall back to the legacy ones.
+- Supabase CLI 3.x: `db push`, `db advisors` etc. default to the **local** stack. Use `--remote` for the linked project. `supabase login` refuses to run without an interactive terminal (`LoginMissingTokenError`).
+- Hosted checks run 12 Nov 2026: a signed-out request to `settings`, `members`, `orders` or `audit_log` returns 401 / `42501 permission denied`; a signed-out storage listing returns `[]`. The hosted project has both legacy (anon / service_role) and new (publishable / secret) keys. Use the new ones.
 - `supabase db lint` reports errors inside PostGIS's own functions (extension code, not ours). Lint our schemas with `pnpm exec supabase db lint -s public,private`: clean. `supabase db advisors`: no issues.
