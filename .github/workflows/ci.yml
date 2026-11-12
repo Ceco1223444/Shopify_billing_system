@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version comes from "packageManager" in package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  database:
+    name: Migrations from zero, RLS, realtime, end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,mailpit,supavisor,logflare,vector
+      - name: Apply every migration to a fresh, empty database
+        run: pnpm exec supabase db reset
+      - name: Point the web app and tests at the local stack
+        run: pnpm env:local
+      - name: Generated database types are up to date
+        run: |
+          pnpm db:types
+          git diff --exit-code -- packages/core/src/database.types.ts
+
+      - name: Integration tests (schema, grants, RLS, storage, realtime)
+        run: pnpm test:integration
+
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @happyhome/tests exec playwright install --with-deps chromium
+      - name: End-to-end tests (login, shell, live sync, presence)
+        run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            tests/playwright-report/
+            tests/test-results/
+          retention-days: 7
