@@ -1,12 +1,13 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 12 Nov 2026, end of **Phase 1 — Foundation**.
+Last updated: 13 Nov 2026, end of **Phase 2 — Import Shopify CSV batches** (branch `phase-2-import`).
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
-| 2–13 | Not started |
+| 2 Import Shopify CSV batches | Built on branch `phase-2-import`. All local checks green: lint, typecheck, 62 core + 20 web unit tests, 92 integration tests, 14 e2e tests. Merge to `main` + tag `phase-2` once CI is green. Hosted: migration `20261113120000_import_batches` and the `import-batch` Edge Function are **not** pushed yet (steps 16–17). The owner's check with real exports is still to do (step 18). |
+| 3–13 | Not started |
 
 ## Setup (15 steps)
 
@@ -31,6 +32,14 @@ Hosted Supabase project (EU / Frankfurt):
 14. Copy `apps/web/.env.example` to `apps/web/.env.hosted.local`, fill in the URL and the **publishable** key, then run `pnpm dev:hosted`.
 15. Your check: log in as two people in two browsers (or laptop + phone), open `/dev/sync` in both, and see "… гледа тази пратка" and the shared text update live.
 
+Phase 2 on the hosted project (after the phase is merged; same terminal as step 9):
+
+16. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote` (adds `20261113120000_import_batches`).
+17. `pnpm exec supabase functions deploy import-batch`. It reads `verify_jwt = false` from `supabase/config.toml`: the function checks the login itself and lets only the owner import.
+18. Your check (prompt pack): import the same real export twice → the second one is refused. Import an overlapping export → only the new orders count as new. Then open the batch, press **Изтегли Excel**, and compare it with the legacy tool's file.
+
+Locally, `pnpm db:start` already serves the Edge Function (the local stack includes the edge runtime).
+
 ## What Phase 1 built
 
 - **Monorepo** (pnpm workspaces): `apps/web` (React 19 + Vite 8 + TypeScript), `apps/desktop` (placeholder), `packages/core` (pure TS: money/date formatting, domain vocabulary, settings defaults, generated DB types), `supabase/` (config + migrations), `tests/` (integration + e2e), `scripts/` (env, types, members).
@@ -49,14 +58,47 @@ Hosted Supabase project (EU / Frankfurt):
 - **One browser = one login**: if another tab of the same browser signs in as someone else, this window shows an amber notice. Otherwise it would silently carry on as that person, and the audit log would record their name.
 - **i18n**: i18next; `bg` default, `en` complete; keys are type-checked; a unit test checks that both locale files have the same keys and placeholders.
 
+## What Phase 2 built
+
+- **Ported converter** (`packages/core/src/import/`): decode (UTF-8, UTF-8 BOM, UTF-16 LE/BE, Windows-1251), detectDelimiter, parseCSV, readFile (continuation rows, apostrophe strip), validateOrder, phoneProblem, phoneMatchKey, repeated orders, productsKey, groupCustomers, buildXlsx, zip. The legacy English messages are kept word for word; every code also has a plain Bulgarian text and a "why" line (`messages.ts`).
+- **Legacy parity** (`packages/core/test/`): the legacy `<script id="core">` is loaded in Node (`node:vm`) and run next to the port on the legacy `sampleFiles()` plus 19 synthetic files (Windows-1251, semicolon, UTF-16 LE/BE, columns reordered, cut off mid-quote, messy phones and addresses, alias headings…). Orders, lines, issues and the XLSX bytes are identical. A workbook rebuilt later from the stored rows is byte-identical too.
+- **Browser → Edge Function → one transaction**: the browser parses the file (`buildImportPayload`) and posts the raw file + the parsed result to `supabase/functions/import-batch`. The function checks the login (owner only), the size (50 MB) and the SHA-256, stores the file as `raw-imports/<year>/<batch id>.csv`, then calls `public.import_commit(...)`. That writes the batch, orders, lines, flags and the audit diff in **one transaction**. If the database part fails, the stored file is removed again. Logs contain only error codes, never customer data.
+- **Migration `20261113120000_import_batches`**: batch columns (sha256 unique, uploader, counts, columns found, archive state), more typed order columns (billing / customer phone, province, discount, refunds, tags, payment terms), `order_lines.source_row`, `import_batch_orders` (what each batch did to each order: new / updated / unchanged + diff), flag columns (source batch and row, issue key, origin), the setting `visible_columns`, owner-only RLS on batches, storage policies (raw files: only the owner reads them, and a delete works only once the file is archived), and the functions `import_commit`, `archive_mark_due`, `archive_confirm`, `archive_mark_deleted`.
+- **Upsert rule** (key: Shopify Id, else Name): new → insert. Identical → a "seen again" row in `import_batch_orders`. Changed → update + diff in `audit_log` (reason `shopify_reimport: <file>`) + the flag "Поръчката е променена в Shopify след внасянето" (amber; red if a shipment has a waybill). Cancelled later → red flag, and the shipment is set to `cancelled` unless it is already handed over, delivered or returned.
+- **Flags**: every legacy issue becomes a flag (error → red, warning → amber, info → grey) with code, Bulgarian + English text, reason, source batch and row. Re-importing does not repeat a flag that is open or was resolved. A check that no longer applies in a newer file is resolved automatically, with a note.
+- **Web**:
+  - `/import`: a big drop zone (several files at once), progress, a summary card per file ("12 нови поръчки · 3 вече внесени · 1 променена · 2 за проверка"). A duplicate file is refused with a Bulgarian message. History of every file: date, counts, size, SHA-256, archive state.
+  - `/import/:id`: batch details, the order lines with the chosen columns (default: photo + the legacy 18), yellow rows like the legacy tool, and the flags. **Изтегли Excel** gives the legacy workbook with the chosen columns, yellow rows and the Warnings sheet. **Изтегли CSV** gives the original file while it is still in the cloud.
+  - `/settings` (owner): column chooser (every column found in the imported files; tick, drag, or arrows) and "Архив на CSV файловете".
+  - Import is not in the packers' menu. The owner's screens load on demand.
+- **Raw CSV archive** (`apps/web/src/archive/`): when the owner opens the app, files older than `raw_csv_retention_days` (90) become "Чака архивиране". If a folder is chosen on that computer (Chrome / Edge: File System Access API; the folder is kept in IndexedDB; permission is asked again when the browser wants it), each file is saved to `<folder>/<year>/<import date>_<file name>.csv`. Nothing is overwritten (" (2)", " (3)"…). The copy is read back and checked by size and SHA-256, then recorded (date, computer, path), and only then deleted from cloud storage. Without a folder nothing is deleted, and a banner says "N CSV файла чакат архивиране". Firefox / Safari: **Изтегли ZIP**, then **Свалих ги**. **Архивирай сега** archives everything at once. The batch history keeps the name, size, SHA-256 and archive date permanently.
+
+### Phase 2 tests
+
+| ID | Where |
+|---|---|
+| T2-01 legacy parity | `packages/core/test/legacy-parity.test.ts` |
+| T2-02 1251 / semicolon / UTF-16 / reordered / cut off | same file (synthetic fixtures in `packages/core/test/synthetic.ts`) |
+| T2-03 same file twice | `tests/integration/import.test.ts`, `tests/e2e/import.spec.ts` |
+| T2-04 overlapping exports | `tests/integration/import.test.ts` |
+| T2-05 changed order (amber; red with a waybill) | `tests/integration/import.test.ts` |
+| T2-06 cancelled order (a handed-over shipment stays as it is) | `tests/integration/import.test.ts` |
+| T2-07 import as packer / outsider / signed out | `tests/integration/import.test.ts`, `tests/e2e/import.spec.ts` |
+| T2-08 hide + reorder columns | `tests/e2e/import.spec.ts` (view + Excel headings + stored data unchanged), `packages/core/src/import/app.test.ts`, `tests/integration/import.test.ts` |
+| T2-09 past retention, folder chosen | `apps/web/src/archive/archiver.test.ts`, `tests/integration/archive.test.ts`, `tests/e2e/import.spec.ts` (the real folder API, on the browser's private file system) |
+| T2-10 past retention, no folder | `tests/integration/archive.test.ts`, `tests/e2e/import.spec.ts` (banner) |
+| T2-11 name already in the folder | `apps/web/src/archive/archiver.test.ts` |
+| T2-12 write fails | `apps/web/src/archive/archiver.test.ts` (plus checksum, read-back and record failures) |
+| ZIP fallback | `apps/web/src/archive/archiver.test.ts`, `tests/e2e/import.spec.ts` |
+
 ## Security model (hosted settings: Data API on, auto-expose OFF, auto-RLS ON)
 
 | Role | Gets |
 |---|---|
 | `anon` (signed out) | No GRANT on any table: every request returns *permission denied*. Cannot join private channels or read files. |
 | `authenticated`, not a member | Grants exist, but RLS hides every row. Sees the "Нямате достъп" screen. |
-| packer | Reads everything; inserts/updates shop data; **cannot** write settings, tariffs, members; cannot delete anything. |
-| owner | Everything a packer can do, plus settings, tariffs, members and deletes. |
+| packer | Reads everything except import batches and raw CSV files; inserts/updates shop data; **cannot** import, write settings, tariffs, members; cannot delete anything. |
+| owner | Everything a packer can do, plus import, raw CSV files, settings, tariffs, members and deletes. A raw CSV can be deleted only after its archive copy is confirmed. |
 | `service_role` (Edge Functions / scripts) | All tables; bypasses RLS. `audit_log` is read-only even here. |
 
 - `audit_log`, `courier_offices`, `geocode_cache`: SELECT only for signed-in users. Offices and geocodes come from Edge Functions (the app never invents courier data); the audit log is written only by the trigger.
@@ -92,6 +134,19 @@ Tests: `apps/web/src/lib/realtime.test.ts` (unit) and `tests/e2e/reconnect.spec.
 - TypeScript **6.0**, not 7: typescript-eslint does not support TS 7 yet.
 - Role label in Bulgarian: "packer" is shown as "опаковане".
 
+Phase 2:
+
+- **Two differences from the brief (MASTER_PROMPT). I followed the Phase 2 spec; please confirm:**
+  1. The brief says a packer "can do everything else". Phase 2 says import is owner-only ("Packers MUST NOT see or use it"). Import, the batch screens and the raw files are owner-only (RLS, Edge Function and UI).
+  2. The brief says raw CSVs are "deleted automatically after `raw_csv_retention_days`". Phase 2 says a raw CSV must never be deleted before its archive copy is confirmed. So after 90 days a file only becomes "Чака архивиране". It is deleted once the copy on the owner's computer has been checked.
+- Hidden by default: **nothing** (P2-11). The prompt pack's `<<LIST THE COLUMNS YOU WANT REMOVED>>` was never filled in; hide columns in Settings.
+- If one file contains the same order twice (legacy "repeated order"), the **first** copy is stored and the order gets a red flag.
+- Changes are detected only on the columns the newer file has: a column missing from the newer file is not treated as "deleted". Line breaks and spaces around values are ignored when comparing.
+- When an order is cancelled in Shopify, the "cancelled" flag replaces the "changed" flag for that import.
+- Checks from an older file that no longer apply in a newer file are resolved automatically ("Вече го няма в по-новото внасяне").
+- The archive folder is per computer (per browser). The computer name in the archive history is set in Settings; the default is the system and browser, e.g. "Windows · Chrome".
+- "Изтегли Excel" keeps the legacy sheet names (Shipping / Warnings / Notes) and headings (`order_id` for Name), because the legacy delivery board reads them.
+
 ## Known gaps
 
 - Hosted project: migrations are pushed. Still to do by the owner: sign-ups off, Realtime public access off, `.env.admin`, creating the members, `.env.hosted.local` (steps 11–14).
@@ -99,7 +154,10 @@ Tests: `apps/web/src/lib/realtime.test.ts` (unit) and `tests/e2e/reconnect.spec.
 - Hosted advisors show 2 WARN items for `public.rls_auto_enable()`. Supabase created that function for the "automatic RLS" setting; our migrations did not. It is SECURITY DEFINER and `anon` / `authenticated` may EXECUTE it. A live call through `/rest/v1/rpc/rls_auto_enable` fails (`0A000 cannot display a value of type event_trigger`), and the function only works inside an event trigger. Not exploitable as far as we can tell. Optional clean-up: revoke EXECUTE from anon/authenticated (waiting for the owner's OK).
 - PWA install (manifest + service worker) is left for Phase 12, where the prompt pack puts the install prompt.
 - `apps/desktop` is only a placeholder (Phase 12).
-- The web bundle is 542 kB (159 kB gzipped). Vite warns above 500 kB; code-splitting can wait for Phase 12.
+- Web bundle: the import, batch and settings screens are split out and load on first visit. Every user downloads about 570 kB (170 kB gzipped) in two chunks, so Vite no longer warns.
+- **Desktop app archive path**: browsers never reveal a folder's full path. The desktop app (Phase 12) must ask for the folder once with its own dialog and provide `window.happyhomeDesktop.archiveFolder`. The web side already uses it when it is there.
+- **No real exports tested yet.** The prompt pack asks for 2–3 anonymized real Shopify exports; only the legacy samples and synthetic files were used. If a real export has a column or format the legacy tool does not handle, the Phase 2 spec says to stop and ask.
+- CI's database job now also starts the edge runtime, which the import tests need.
 - Packers cannot delete rows, including `shipment_orders`. If Phase 3 lets packers split a combined shipment, that needs an RPC or a "detached" flag instead of a delete.
 - The repository is **public**. Never commit real CSV exports, customer data, `.env*` files or keys.
 
