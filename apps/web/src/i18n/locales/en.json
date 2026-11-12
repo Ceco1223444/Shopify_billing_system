@@ -1,0 +1,105 @@
+{
+  "app": {
+    "shopName": "HappyHome",
+    "documentTitle": "HappyHome — Shipping",
+    "loading": "Loading…",
+    "skipToContent": "Skip to content"
+  },
+  "nav": {
+    "label": "Main menu",
+    "shipments": "Shipments",
+    "import": "Import",
+    "products": "Products",
+    "stock": "Stock",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "pages": {
+    "comingSoon": "This page is still being built.",
+    "shipments": {
+      "title": "Shipments",
+      "intro": "Here you will see which parcels to send today and whom to call."
+    },
+    "import": {
+      "title": "Import orders",
+      "intro": "Here you will upload the orders file downloaded from Shopify."
+    },
+    "products": {
+      "title": "Products",
+      "intro": "Here each product will have a photo, purchase price and weight."
+    },
+    "stock": {
+      "title": "Stock",
+      "intro": "Here you will see how many pieces of each product are left."
+    },
+    "reports": {
+      "title": "Reports",
+      "intro": "Here you will find profit, shipping costs and import history."
+    },
+    "settings": {
+      "title": "Settings",
+      "intro": "Here the owner will change the shop settings."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "back": "Back to shipments"
+    }
+  },
+  "auth": {
+    "title": "Sign in",
+    "intro": "Sign in with the email and password the owner gave you.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "logout": "Sign out",
+    "errors": {
+      "invalid": "Wrong email or password. Check them and try again.",
+      "network": "Cannot reach the server. Check the internet connection and try again.",
+      "unknown": "Sign-in failed. Try again in a moment."
+    },
+    "noAccess": {
+      "title": "No access",
+      "body": "You signed in, but your account has not been added to the shop or has been disabled. Call the owner."
+    }
+  },
+  "topbar": {
+    "signedInAs": "Signed in as {{name}}",
+    "role": {
+      "owner": "owner",
+      "packer": "packing"
+    },
+    "online": "Online: {{names}}",
+    "onlineNobody": "Nobody else is online"
+  },
+  "language": {
+    "label": "Language",
+    "bg": "БГ",
+    "en": "EN",
+    "bgName": "Български",
+    "enName": "English"
+  },
+  "presence": {
+    "viewing_one": "{{names}} is looking at this shipment",
+    "viewing_other": "{{names}} are looking at this shipment"
+  },
+  "dev": {
+    "title": "Connection check",
+    "intro": "Open this page on two computers. A change on one should appear on the other within a few seconds.",
+    "sharedText": "Shared text",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "currentValue": "Value in the database",
+    "empty": "(empty)",
+    "status": {
+      "connecting": "Connecting…",
+      "live": "Live",
+      "offline": "No connection"
+    },
+    "presenceTitle": "Who is looking at the test shipment",
+    "presenceIntro": "Both computers should show the other person's name.",
+    "presenceNobody": "Nobody else is looking at this shipment",
+    "error": "Error: {{message}}"
+  }
+}

@@ -1,0 +1,334 @@
+/* Calm, basic UI (brief section 2): light background, large text, few colours.
+   Colour is used only for status, and always together with an icon and a word. */
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --text: #1d2125;
+  --muted: #5b6168;
+  --border: #d5d3cc;
+  --accent: #1f5fbf;
+  --accent-text: #ffffff;
+  --focus: #1f5fbf;
+
+  --ok-bg: #e6f4ea;
+  --ok-text: #14632b;
+  --warn-bg: #fff4d6;
+  --warn-text: #7a5200;
+  --error-bg: #fde8e8;
+  --error-text: #a01c1c;
+  --info-bg: #e8f0fb;
+  --info-text: #1d4c91;
+
+  --radius: 10px;
+  --tap: 48px;
+
+  color-scheme: light;
+  font-family: system-ui, 'Segoe UI', Roboto, 'Noto Sans', Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---- buttons and inputs ---- */
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: var(--tap);
+  padding: 0 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.button-secondary {
+  background: var(--surface);
+}
+
+input {
+  min-height: var(--tap);
+  width: 100%;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+
+/* ---- status badges (always icon + word) ---- */
+.badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
+.badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.badge-error {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.badge-info {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+/* ---- shell ---- */
+.skip-link {
+  position: absolute;
+  left: -999px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  background: var(--surface);
+  padding: 0.5rem 1rem;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.topbar-shop {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.topbar-online {
+  margin: 0;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--ok-text);
+  display: inline-block;
+}
+
+.topbar-user {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lang-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.lang-toggle button {
+  border: 0;
+  border-radius: 0;
+  min-width: 3.2rem;
+}
+
+.lang-toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--tap);
+  padding: 0 1rem;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav a:hover {
+  background: var(--bg);
+}
+
+.nav a[aria-current='page'] {
+  background: var(--info-bg);
+  color: var(--info-text);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.full-page-message {
+  padding: 3rem 1rem;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+/* ---- login ---- */
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.login-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.login-head .lang-toggle {
+  margin-left: auto;
+}
+
+.login form button[type='submit'] {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+.login .badge {
+  display: block;
+  margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .topbar-user {
+    margin-left: 0;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
