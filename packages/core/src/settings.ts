@@ -1,4 +1,5 @@
 import type { CourierMode, SupportedCarrier } from './domain';
+import { DEFAULT_VISIBLE_COLUMNS } from './import/columns';
 
 /**
  * Default values seeded into the `settings` table (key -> jsonb value) by
@@ -14,6 +15,9 @@ export interface AppSettings {
   packaging_cost_cents: number;
   courier_fee_payer: 'SENDER' | 'RECIPIENT';
   home_carrier_tie_break: SupportedCarrier;
+  /** Columns shown in the batch view and the Excel export, in order (Phase 2). */
+  visible_columns: string[];
+  /** Kept for compatibility: the default columns that are not in visible_columns. */
   hidden_columns: string[];
   raw_csv_retention_days: number;
   label_paper: 'A6' | 'A4' | 'A4_4xA6';
@@ -33,6 +37,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   packaging_cost_cents: 0,
   courier_fee_payer: 'SENDER',
   home_carrier_tie_break: 'speedy',
+  visible_columns: [...DEFAULT_VISIBLE_COLUMNS],
   hidden_columns: [],
   raw_csv_retention_days: 90,
   label_paper: 'A6',

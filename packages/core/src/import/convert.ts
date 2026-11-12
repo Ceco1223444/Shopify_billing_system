@@ -80,6 +80,8 @@ export interface Line {
   carried: number[];
   /** the row's original cells (port only: kept for orders.raw) */
   cells: string[];
+  /** port only: column name -> value, for lines rebuilt from the database */
+  raw?: Record<string, string>;
 }
 
 export type OrderKind = 'normal' | 'noid' | 'orphan';
