@@ -73,6 +73,14 @@ Reported: "the base changes, but when one person connects the other disconnects;
 
 Tests: `apps/web/src/lib/realtime.test.ts` (unit) and `tests/e2e/reconnect.spec.ts` (e2e with simulated latency, run 5× without failure). The e2e suite now closes every window it opens, and runs its own dev server on port **5199** against the local stack. It never reuses a `pnpm dev:hosted` server on 5173.
 
+## Git workflow (agreed 12 Nov 2026)
+
+- `main` is always the latest working app. Nobody commits to it directly.
+- Each phase: `git checkout main && git pull`, then `git checkout -b phase-N-<name>`. Work and push there until CI is green and the phase's DONE WHEN holds.
+- Finish a phase: fast-forward `main` to the phase branch (`git merge --ff-only`), tag it `phase-N`, and push both.
+- Tags are frozen snapshots: `git checkout phase-1` shows the app exactly as Phase 1 left it.
+- Hosted database: push a phase's migrations (`supabase db push --remote`) when the phase is merged, after a `--dry-run`.
+
 ## Decisions and assumptions (tell me if any is wrong)
 
 - `raw_csv_retention_days` = **90**. The Phase 1 prompt left the placeholder `<<e.g. 90>>`. Change it in settings later.
