@@ -20,3 +20,7 @@ export const supabase = createClient<Database>(url, key, {
 /** Dev-only pages (connection check) are on in `pnpm dev` or when explicitly enabled. */
 export const devPagesEnabled =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_PAGES === 'true';
+
+/** For direct fetch() calls to Edge Functions (multipart uploads). */
+export const supabaseUrl: string = url;
+export const supabasePublishableKey: string = key;

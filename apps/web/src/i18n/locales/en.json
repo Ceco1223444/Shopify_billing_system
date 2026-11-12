@@ -23,7 +23,7 @@
     },
     "import": {
       "title": "Import orders",
-      "intro": "Here you will upload the orders file downloaded from Shopify."
+      "intro": "Upload one or more order files exported from Shopify (Orders → Export → CSV)."
     },
     "products": {
       "title": "Products",
@@ -39,7 +39,7 @@
     },
     "settings": {
       "title": "Settings",
-      "intro": "Here the owner will change the shop settings."
+      "intro": "The owner changes the shop's settings here."
     },
     "notFound": {
       "title": "Page not found",
@@ -104,5 +104,155 @@
     "presenceIntro": "Both computers should show the other person's name.",
     "presenceNobody": "Nobody else is looking at this shipment",
     "error": "Error: {{message}}"
+  },
+  "flags": {
+    "severity": {
+      "red": "Error",
+      "amber": "Check",
+      "info": "Note"
+    },
+    "why": "Why: {{reason}}",
+    "resolved": "Resolved: {{note}}"
+  },
+  "import": {
+    "ownerOnly": "Only the owner imports orders. If a new file needs importing, call the owner.",
+    "drop": {
+      "title": "Drop the CSV files here",
+      "hint": "or click to choose them. Several files at once are fine.",
+      "button": "Choose files"
+    },
+    "progress": "File {{current}} of {{total}}: {{name}}",
+    "stage": {
+      "reading": "Reading…",
+      "checking": "Checking…",
+      "uploading": "Saving…"
+    },
+    "summary": {
+      "new_one": "{{count}} new order",
+      "new_other": "{{count}} new orders",
+      "unchanged_one": "{{count}} already imported",
+      "unchanged_other": "{{count}} already imported",
+      "updated_one": "{{count}} changed",
+      "updated_other": "{{count}} changed",
+      "toCheck": "{{count}} to check",
+      "skipped_one": "{{count}} row skipped",
+      "skipped_other": "{{count}} rows skipped"
+    },
+    "done": "Imported",
+    "open": "Open",
+    "duplicate": "This file was already imported on {{date}} (“{{name}}”). Nothing was changed.",
+    "duplicateOpen": "Open the earlier import",
+    "notImportable": "The file was not imported:",
+    "failed": "The import failed and nothing was saved. Try again in a moment.",
+    "failedOffline": "No connection to the server. Nothing was saved. Check the internet and try again.",
+    "failedOwnerOnly": "Only the owner can import orders.",
+    "history": {
+      "title": "Imported files",
+      "empty": "No files imported yet.",
+      "date": "Imported on",
+      "file": "File",
+      "orders": "Orders",
+      "size": "Size",
+      "csv": "CSV file",
+      "checksum": "SHA-256"
+    },
+    "archive": {
+      "stored": "In the cloud",
+      "waiting": "Waiting for archive",
+      "archived": "Archived on {{date}}",
+      "archivedOn": "Archived on {{date}} on “{{computer}}”: {{path}}",
+      "archivedZip": "Archived on {{date}} (downloaded as ZIP on “{{computer}}”)"
+    }
+  },
+  "batch": {
+    "back": "← All imported files",
+    "notFound": "No such import.",
+    "importedAt": "Imported on",
+    "importedBy": "Imported by",
+    "rows": "Rows in the file",
+    "size": "Size",
+    "checksum": "SHA-256",
+    "encoding": "Encoding",
+    "csvFile": "CSV file",
+    "downloadExcel": "Download Excel",
+    "downloadCsv": "Download CSV",
+    "csvGone": "The file was removed from the cloud. The copy is in the archive: {{where}}",
+    "loading": "Loading the orders…",
+    "loadFailed": "The orders could not be loaded. Try again.",
+    "problems": "To check",
+    "fileProblems": "About the file itself",
+    "noProblems": "Nothing to check.",
+    "lines": "Orders and products",
+    "linesCount": "{{orders}} orders · {{rows}} product rows",
+    "multiLegend": "Yellow row = a customer with more than one order, or an order with more than one product.",
+    "multiRow": "More than one order or product",
+    "noPhoto": "No photo",
+    "columnsHint": "Choose the columns in Settings → Columns.",
+    "outcome": {
+      "new": "new",
+      "updated": "changed",
+      "unchanged": "already imported"
+    }
+  },
+  "settings": {
+    "ownerOnly": "Only the owner changes the settings.",
+    "columns": {
+      "title": "Columns in the view and in Excel",
+      "intro": "Choose which columns are shown and in which order. This changes only the view and the downloaded Excel — the data in the app stays the same.",
+      "dragHint": "Drag a row to move it, or use the arrows.",
+      "show": "Show {{column}}",
+      "up": "Move {{column}} up",
+      "down": "Move {{column}} down",
+      "save": "Save columns",
+      "saving": "Saving…",
+      "saved": "Columns saved.",
+      "saveFailed": "Could not save. Try again.",
+      "reset": "Default columns only",
+      "atLeastOne": "Choose at least one column.",
+      "default": "default",
+      "count": "Shown: {{shown}} of {{total}}"
+    },
+    "archive": {
+      "title": "CSV file archive",
+      "intro": "Files older than {{days}} days are saved to a folder on the owner's computer, checked, and only then removed from the cloud. Without a saved copy nothing is deleted.",
+      "folder": "Folder: {{name}}",
+      "desktopFolder": "Folder (desktop app): {{name}}",
+      "noFolder": "No folder chosen on this computer yet.",
+      "choose": "Choose folder",
+      "change": "Change folder",
+      "allow": "Allow saving to the folder",
+      "allowHint": "The browser asks for permission again before it saves to the folder.",
+      "denied": "The browser did not allow saving to the folder. Choose the folder again.",
+      "computer": "Name of this computer",
+      "computerHint": "Saved next to every archived file, so you know which computer has it.",
+      "saveComputer": "Save name",
+      "now": "Archive now",
+      "nowHint": "Saves all CSV files to the folder right away, without waiting {{days}} days.",
+      "waiting_one": "{{count}} file is waiting for archive.",
+      "waiting_other": "{{count}} files are waiting for archive.",
+      "nothingWaiting": "No files are waiting for archive.",
+      "busy": "Archiving…",
+      "saved": "Saved: {{path}}",
+      "retriedDelete": "“{{name}}” was removed from the cloud (its copy was saved earlier).",
+      "failed": "“{{name}}”: {{reason}}. The file stays in the cloud.",
+      "failedDelete": "“{{name}}” was saved to the folder but not removed from the cloud — we will try again.",
+      "reason": {
+        "download": "could not be downloaded from the cloud",
+        "checksum": "the downloaded file differs from the imported one",
+        "write": "could not be saved to the folder",
+        "verify": "the saved copy differs from the imported file",
+        "confirm": "could not be recorded as archived",
+        "delete": "could not be removed from the cloud"
+      },
+      "unsupported": "This browser cannot save to a folder (that works in Chrome and Edge). Download the files as a ZIP and save it yourself.",
+      "zip": "Download ZIP",
+      "zipReady_one": "A ZIP with {{count}} file was downloaded. Save it on the computer, then press “I have saved them”.",
+      "zipReady_other": "A ZIP with {{count}} files was downloaded. Save it on the computer, then press “I have saved them”.",
+      "zipConfirm": "I have saved them",
+      "loadFailed": "The archive could not be checked. Try again later.",
+      "banner_one": "{{count}} CSV file is waiting for archive",
+      "banner_other": "{{count}} CSV files are waiting for archive",
+      "bannerLink": "Go to the archive"
+    }
   }
 }
