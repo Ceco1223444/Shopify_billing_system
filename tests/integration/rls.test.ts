@@ -5,6 +5,7 @@
  *   packer    member, role packer
  *   owner     member, role owner
  */
+import { SETTINGS_DEFAULTS } from '@happyhome/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { adminClient, anonClient, signedInClient, type Client } from '../support/clients';
 import { PUBLIC_TABLES, uniq } from '../support/schema';
@@ -74,7 +75,7 @@ describe('packer', () => {
   it('reads all settings', async () => {
     const { data, error } = await packer.from('settings').select('key');
     expect(error).toBeNull();
-    expect(data?.length).toBe(14);
+    expect(data?.length).toBe(Object.keys(SETTINGS_DEFAULTS).length);
   });
 
   it('cannot change a setting', async () => {

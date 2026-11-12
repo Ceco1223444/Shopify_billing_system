@@ -42,7 +42,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Start local Supabase
-        run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,mailpit,supavisor,logflare,vector
+        run: pnpm exec supabase start -x studio,imgproxy,mailpit,supavisor,logflare,vector
       - name: Apply every migration to a fresh, empty database
         run: pnpm exec supabase db reset
       - name: Point the web app and tests at the local stack

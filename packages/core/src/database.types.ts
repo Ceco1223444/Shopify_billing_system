@@ -36,17 +36,23 @@ export type Database = {
                   ]
                 },"flags": {
                   Row: {
-                    "code": string,"created_at": string,"details": NonNullable<Json>,"id": string,"message_bg": string,"message_en": string,"order_id": string | null,"reason_bg": string | null,"reason_en": string | null,"resolution_note": string | null,"resolved_at": string | null,"resolved_by": string | null,"severity": string,"shipment_id": string | null,"updated_at": string,"updated_by": string | null,"version": number
+                    "code": string,"created_at": string,"details": NonNullable<Json>,"id": string,"import_batch_id": string | null,"issue_key": string | null,"message_bg": string,"message_en": string,"order_id": string | null,"origin": string,"reason_bg": string | null,"reason_en": string | null,"resolution_note": string | null,"resolved_at": string | null,"resolved_by": string | null,"severity": string,"shipment_id": string | null,"source_batch_id": string | null,"source_row": number | null,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "code": string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"message_bg": string,"message_en": string,"order_id"?: string | null,"reason_bg"?: string | null,"reason_en"?: string | null,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"severity": string,"shipment_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "code": string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"import_batch_id"?: string | null,"issue_key"?: string | null,"message_bg": string,"message_en": string,"order_id"?: string | null,"origin"?: string,"reason_bg"?: string | null,"reason_en"?: string | null,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"severity": string,"shipment_id"?: string | null,"source_batch_id"?: string | null,"source_row"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "code"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"message_bg"?: string,"message_en"?: string,"order_id"?: string | null,"reason_bg"?: string | null,"reason_en"?: string | null,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"severity"?: string,"shipment_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "code"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"import_batch_id"?: string | null,"issue_key"?: string | null,"message_bg"?: string,"message_en"?: string,"order_id"?: string | null,"origin"?: string,"reason_bg"?: string | null,"reason_en"?: string | null,"resolution_note"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"severity"?: string,"shipment_id"?: string | null,"source_batch_id"?: string | null,"source_row"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "flags_import_batch_id_fkey"
+      columns: ["import_batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "flags_order_id_fkey"
       columns: ["order_id"]
 isOneToOne: false
@@ -57,6 +63,12 @@ isOneToOne: false
       columns: ["shipment_id"]
 isOneToOne: false
       referencedRelation: "shipments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "flags_source_batch_id_fkey"
+      columns: ["source_batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
       referencedColumns: ["id"]
     }
                   ]
@@ -74,16 +86,42 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"import_batches": {
+                },"import_batch_orders": {
                   Row: {
-                    "created_at": string,"delimiter": string | null,"encoding": string | null,"file_hash": string,"file_name": string,"file_size_bytes": number | null,"id": string,"order_count": number | null,"raw_deleted_at": string | null,"row_count": number | null,"status": string,"storage_path": string | null,"summary": NonNullable<Json>,"updated_at": string,"updated_by": string | null,"version": number
+                    "batch_id": string,"created_at": string,"diff": Json | null,"first_row": number | null,"id": string,"order_id": string,"outcome": string,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"delimiter"?: string | null,"encoding"?: string | null,"file_hash": string,"file_name": string,"file_size_bytes"?: number | null,"id"?: string,"order_count"?: number | null,"raw_deleted_at"?: string | null,"row_count"?: number | null,"status"?: string,"storage_path"?: string | null,"summary"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "batch_id": string,"created_at"?: string,"diff"?: Json | null,"first_row"?: number | null,"id"?: string,"order_id": string,"outcome": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"delimiter"?: string | null,"encoding"?: string | null,"file_hash"?: string,"file_name"?: string,"file_size_bytes"?: number | null,"id"?: string,"order_count"?: number | null,"raw_deleted_at"?: string | null,"row_count"?: number | null,"status"?: string,"storage_path"?: string | null,"summary"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "batch_id"?: string,"created_at"?: string,"diff"?: Json | null,"first_row"?: number | null,"id"?: string,"order_id"?: string,"outcome"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_batch_orders_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "import_batch_orders_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"import_batches": {
+                  Row: {
+                    "archive_method": string | null,"archive_requested_at": string | null,"archive_state": string,"archived_at": string | null,"archived_by": string | null,"archived_on": string | null,"archived_path": string | null,"columns": (string)[],"created_at": string,"delimiter": string | null,"encoding": string | null,"file_hash": string,"file_name": string,"file_size_bytes": number | null,"id": string,"order_count": number | null,"orders_new": number,"orders_skipped": number,"orders_to_check": number,"orders_unchanged": number,"orders_updated": number,"product_rows": number | null,"raw_deleted_at": string | null,"row_count": number | null,"sha256": string,"status": string,"storage_path": string | null,"summary": NonNullable<Json>,"updated_at": string,"updated_by": string | null,"uploaded_by": string | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archive_method"?: string | null,"archive_requested_at"?: string | null,"archive_state"?: string,"archived_at"?: string | null,"archived_by"?: string | null,"archived_on"?: string | null,"archived_path"?: string | null,"columns"?: (string)[],"created_at"?: string,"delimiter"?: string | null,"encoding"?: string | null,"file_hash": string,"file_name": string,"file_size_bytes"?: number | null,"id"?: string,"order_count"?: number | null,"orders_new"?: number,"orders_skipped"?: number,"orders_to_check"?: number,"orders_unchanged"?: number,"orders_updated"?: number,"product_rows"?: number | null,"raw_deleted_at"?: string | null,"row_count"?: number | null,"sha256": string,"status"?: string,"storage_path"?: string | null,"summary"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"uploaded_by"?: string | null,"version"?: number
+                  }
+                  Update: {
+                    "archive_method"?: string | null,"archive_requested_at"?: string | null,"archive_state"?: string,"archived_at"?: string | null,"archived_by"?: string | null,"archived_on"?: string | null,"archived_path"?: string | null,"columns"?: (string)[],"created_at"?: string,"delimiter"?: string | null,"encoding"?: string | null,"file_hash"?: string,"file_name"?: string,"file_size_bytes"?: number | null,"id"?: string,"order_count"?: number | null,"orders_new"?: number,"orders_skipped"?: number,"orders_to_check"?: number,"orders_unchanged"?: number,"orders_updated"?: number,"product_rows"?: number | null,"raw_deleted_at"?: string | null,"row_count"?: number | null,"sha256"?: string,"status"?: string,"storage_path"?: string | null,"summary"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"uploaded_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     
@@ -104,14 +142,14 @@ isOneToOne: false
                   ]
                 },"order_lines": {
                   Row: {
-                    "created_at": string,"id": string,"line_no": number,"name": string,"order_id": string,"price_cents": number | null,"product_id": string | null,"quantity": number,"raw": NonNullable<Json>,"requires_shipping": boolean | null,"sku": string | null,"updated_at": string,"updated_by": string | null,"version": number
+                    "created_at": string,"id": string,"line_no": number,"name": string,"order_id": string,"price_cents": number | null,"product_id": string | null,"quantity": number | null,"raw": NonNullable<Json>,"requires_shipping": boolean | null,"sku": string | null,"source_row": number | null,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"line_no": number,"name": string,"order_id": string,"price_cents"?: number | null,"product_id"?: string | null,"quantity"?: number,"raw"?: NonNullable<Json>,"requires_shipping"?: boolean | null,"sku"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "created_at"?: string,"id"?: string,"line_no": number,"name": string,"order_id": string,"price_cents"?: number | null,"product_id"?: string | null,"quantity"?: number | null,"raw"?: NonNullable<Json>,"requires_shipping"?: boolean | null,"sku"?: string | null,"source_row"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"line_no"?: number,"name"?: string,"order_id"?: string,"price_cents"?: number | null,"product_id"?: string | null,"quantity"?: number,"raw"?: NonNullable<Json>,"requires_shipping"?: boolean | null,"sku"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "created_at"?: string,"id"?: string,"line_no"?: number,"name"?: string,"order_id"?: string,"price_cents"?: number | null,"product_id"?: string | null,"quantity"?: number | null,"raw"?: NonNullable<Json>,"requires_shipping"?: boolean | null,"sku"?: string | null,"source_row"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
@@ -130,14 +168,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "cancelled_at": string | null,"content_hash": string | null,"created_at": string,"created_at_shopify": string | null,"currency": string,"email": string | null,"email_norm": string | null,"financial_status": string | null,"first_import_batch_id": string | null,"fulfillment_status": string | null,"id": string,"is_cod": boolean | null,"last_import_batch_id": string | null,"name": string,"note_attributes": NonNullable<Json>,"notes": string | null,"outstanding_cents": number | null,"payment_method": string | null,"phone_norm": string | null,"phone_raw": string | null,"raw": NonNullable<Json>,"shipping_address1": string | null,"shipping_address2": string | null,"shipping_cents": number | null,"shipping_city": string | null,"shipping_company": string | null,"shipping_country": string | null,"shipping_method": string | null,"shipping_name": string | null,"shipping_zip": string | null,"shopify_id": string | null,"subtotal_cents": number | null,"total_cents": number | null,"updated_at": string,"updated_by": string | null,"version": number
+                    "billing_phone": string | null,"cancelled_at": string | null,"content_hash": string | null,"created_at": string,"created_at_shopify": string | null,"currency": string,"customer_phone": string | null,"discount_cents": number | null,"email": string | null,"email_norm": string | null,"financial_status": string | null,"first_import_batch_id": string | null,"fulfillment_status": string | null,"id": string,"is_cod": boolean | null,"last_import_batch_id": string | null,"name": string,"note_attributes": NonNullable<Json>,"notes": string | null,"outstanding_cents": number | null,"payment_method": string | null,"payment_terms": string | null,"phone_norm": string | null,"phone_raw": string | null,"raw": NonNullable<Json>,"refunded_cents": number | null,"shipping_address1": string | null,"shipping_address2": string | null,"shipping_cents": number | null,"shipping_city": string | null,"shipping_company": string | null,"shipping_country": string | null,"shipping_method": string | null,"shipping_name": string | null,"shipping_province": string | null,"shipping_zip": string | null,"shopify_id": string | null,"subtotal_cents": number | null,"tags": string | null,"total_cents": number | null,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "cancelled_at"?: string | null,"content_hash"?: string | null,"created_at"?: string,"created_at_shopify"?: string | null,"currency"?: string,"email"?: string | null,"email_norm"?: string | null,"financial_status"?: string | null,"first_import_batch_id"?: string | null,"fulfillment_status"?: string | null,"id"?: string,"is_cod"?: boolean | null,"last_import_batch_id"?: string | null,"name": string,"note_attributes"?: NonNullable<Json>,"notes"?: string | null,"outstanding_cents"?: number | null,"payment_method"?: string | null,"phone_norm"?: string | null,"phone_raw"?: string | null,"raw"?: NonNullable<Json>,"shipping_address1"?: string | null,"shipping_address2"?: string | null,"shipping_cents"?: number | null,"shipping_city"?: string | null,"shipping_company"?: string | null,"shipping_country"?: string | null,"shipping_method"?: string | null,"shipping_name"?: string | null,"shipping_zip"?: string | null,"shopify_id"?: string | null,"subtotal_cents"?: number | null,"total_cents"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "billing_phone"?: string | null,"cancelled_at"?: string | null,"content_hash"?: string | null,"created_at"?: string,"created_at_shopify"?: string | null,"currency"?: string,"customer_phone"?: string | null,"discount_cents"?: number | null,"email"?: string | null,"email_norm"?: string | null,"financial_status"?: string | null,"first_import_batch_id"?: string | null,"fulfillment_status"?: string | null,"id"?: string,"is_cod"?: boolean | null,"last_import_batch_id"?: string | null,"name": string,"note_attributes"?: NonNullable<Json>,"notes"?: string | null,"outstanding_cents"?: number | null,"payment_method"?: string | null,"payment_terms"?: string | null,"phone_norm"?: string | null,"phone_raw"?: string | null,"raw"?: NonNullable<Json>,"refunded_cents"?: number | null,"shipping_address1"?: string | null,"shipping_address2"?: string | null,"shipping_cents"?: number | null,"shipping_city"?: string | null,"shipping_company"?: string | null,"shipping_country"?: string | null,"shipping_method"?: string | null,"shipping_name"?: string | null,"shipping_province"?: string | null,"shipping_zip"?: string | null,"shopify_id"?: string | null,"subtotal_cents"?: number | null,"tags"?: string | null,"total_cents"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "cancelled_at"?: string | null,"content_hash"?: string | null,"created_at"?: string,"created_at_shopify"?: string | null,"currency"?: string,"email"?: string | null,"email_norm"?: string | null,"financial_status"?: string | null,"first_import_batch_id"?: string | null,"fulfillment_status"?: string | null,"id"?: string,"is_cod"?: boolean | null,"last_import_batch_id"?: string | null,"name"?: string,"note_attributes"?: NonNullable<Json>,"notes"?: string | null,"outstanding_cents"?: number | null,"payment_method"?: string | null,"phone_norm"?: string | null,"phone_raw"?: string | null,"raw"?: NonNullable<Json>,"shipping_address1"?: string | null,"shipping_address2"?: string | null,"shipping_cents"?: number | null,"shipping_city"?: string | null,"shipping_company"?: string | null,"shipping_country"?: string | null,"shipping_method"?: string | null,"shipping_name"?: string | null,"shipping_zip"?: string | null,"shopify_id"?: string | null,"subtotal_cents"?: number | null,"total_cents"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "billing_phone"?: string | null,"cancelled_at"?: string | null,"content_hash"?: string | null,"created_at"?: string,"created_at_shopify"?: string | null,"currency"?: string,"customer_phone"?: string | null,"discount_cents"?: number | null,"email"?: string | null,"email_norm"?: string | null,"financial_status"?: string | null,"first_import_batch_id"?: string | null,"fulfillment_status"?: string | null,"id"?: string,"is_cod"?: boolean | null,"last_import_batch_id"?: string | null,"name"?: string,"note_attributes"?: NonNullable<Json>,"notes"?: string | null,"outstanding_cents"?: number | null,"payment_method"?: string | null,"payment_terms"?: string | null,"phone_norm"?: string | null,"phone_raw"?: string | null,"raw"?: NonNullable<Json>,"refunded_cents"?: number | null,"shipping_address1"?: string | null,"shipping_address2"?: string | null,"shipping_cents"?: number | null,"shipping_city"?: string | null,"shipping_company"?: string | null,"shipping_country"?: string | null,"shipping_method"?: string | null,"shipping_name"?: string | null,"shipping_province"?: string | null,"shipping_zip"?: string | null,"shopify_id"?: string | null,"subtotal_cents"?: number | null,"tags"?: string | null,"total_cents"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
@@ -334,7 +372,18 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "archive_confirm":
+{ Args: { "p_batch_id": string,"p_computer": string,"p_method": string,"p_path": string,"p_sha256": string,"p_size_bytes": number }; Returns: undefined
+                           },
+"archive_mark_deleted":
+{ Args: { "p_batch_id": string }; Returns: undefined
+                           },
+"archive_mark_due":
+{ Args: { "p_all"?: boolean }; Returns: number
+                           },
+"import_commit":
+{ Args: { "p_actor": string,"p_batch_id": string,"p_payload": Json,"p_storage_path": string }; Returns: Json
+                           }
           }
           Enums: {
             [_ in never]: never

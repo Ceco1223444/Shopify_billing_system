@@ -1,9 +1,10 @@
-/** Every table the Phase 1 migrations create in `public`. */
+/** Every table the migrations create in `public`. */
 export const PUBLIC_TABLES = [
   'audit_log',
   'courier_offices',
   'flags',
   'geocode_cache',
+  'import_batch_orders',
   'import_batches',
   'members',
   'order_lines',
@@ -22,7 +23,16 @@ export const PUBLIC_TABLES = [
 export type PublicTable = (typeof PUBLIC_TABLES)[number];
 
 /** Tables only the owner may write (members read them). */
-export const OWNER_WRITE_TABLES = ['members', 'settings', 'tariffs'] as const;
+export const OWNER_WRITE_TABLES = [
+  'import_batch_orders',
+  'import_batches',
+  'members',
+  'settings',
+  'tariffs',
+] as const;
+
+/** Tables only the owner may even read (Phase 2: import is owner only). */
+export const OWNER_ONLY_TABLES = ['import_batch_orders', 'import_batches'] as const;
 
 /** Tables nobody signed in may write (audit trigger / Edge Functions only). */
 export const READ_ONLY_FOR_USERS = ['audit_log', 'courier_offices', 'geocode_cache'] as const;

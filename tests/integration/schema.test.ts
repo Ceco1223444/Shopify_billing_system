@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { testEnv } from '../support/env';
 import {
   BUCKETS,
+  OWNER_ONLY_TABLES,
   OWNER_WRITE_TABLES,
   PUBLIC_TABLES,
   READ_ONLY_FOR_USERS,
@@ -200,6 +201,51 @@ describe('grants and row-level security', () => {
         expect(expr, `${p.tablename} ${p.cmd}`).toContain('is_owner');
       }
     }
+  });
+
+  it('lets only the owner read or write import batches (import is owner only)', async () => {
+    const policies = await rows<{
+      tablename: string;
+      cmd: string;
+      qual: string | null;
+      with_check: string | null;
+    }>(
+      `select tablename, cmd, qual, with_check from pg_policies
+       where schemaname = 'public' and tablename = any($1)`,
+      [[...OWNER_ONLY_TABLES]],
+    );
+    expect(new Set(policies.map((p) => p.cmd))).toEqual(
+      new Set(['SELECT', 'INSERT', 'UPDATE', 'DELETE']),
+    );
+    for (const p of policies) {
+      expect(`${p.qual ?? ''} ${p.with_check ?? ''}`, `${p.tablename} ${p.cmd}`).toContain(
+        'is_owner',
+      );
+    }
+  });
+
+  it('keeps raw CSVs owner only, deletable only once archived, and import_commit for the service role', async () => {
+    const policies = await rows<{
+      policyname: string;
+      cmd: string;
+      qual: string | null;
+      with_check: string | null;
+    }>(
+      `select policyname, cmd, qual, with_check from pg_policies
+       where schemaname = 'storage' and tablename = 'objects'`,
+    );
+    for (const p of policies) {
+      const expr = `${p.qual ?? ''} ${p.with_check ?? ''}`;
+      if (!expr.includes('raw-imports')) continue;
+      expect(expr, p.policyname).toContain('is_owner');
+      expect(['SELECT', 'DELETE'], p.policyname).toContain(p.cmd);
+      if (p.cmd === 'DELETE') expect(expr, p.policyname).toContain("archive_state = 'archived'");
+    }
+    const [f] = await rows<{ authed: boolean; service: boolean }>(
+      `select has_function_privilege('authenticated', 'public.import_commit(uuid, uuid, text, jsonb)', 'EXECUTE') as authed,
+              has_function_privilege('service_role', 'public.import_commit(uuid, uuid, text, jsonb)', 'EXECUTE') as service`,
+    );
+    expect(f).toEqual({ authed: false, service: true });
   });
 
   it('keeps the helper functions away from anon', async () => {
