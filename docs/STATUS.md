@@ -5,7 +5,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 
 | Phase | State |
 |---|---|
-| 1 Foundation | Done locally: all checks green. Hosted project: migrations **not pushed yet** (needs your project ref, step 9 below). |
+| 1 Foundation | Done. CI green on GitHub (both jobs, [run 43278493221](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43278493221)). Hosted project: migrations **not pushed yet** (needs your project ref, step 9 below). |
 | 2–13 | Not started |
 
 ## Setup (15 steps)
@@ -75,7 +75,6 @@ Hosted Supabase project (EU / Frankfurt):
 ## Known gaps
 
 - Hosted project: migrations not pushed and members not created yet (steps 9–13; I need your project ref, and you run `supabase login` yourself).
-- CI: first run on GitHub not verified at the time of writing (see the Actions tab for branch `phase-1-foundation`).
 - PWA install (manifest + service worker) is left for Phase 12, where the prompt pack puts the install prompt.
 - `apps/desktop` is only a placeholder (Phase 12).
 - The web bundle is 542 kB (159 kB gzipped). Vite warns above 500 kB; code-splitting can wait for Phase 12.
