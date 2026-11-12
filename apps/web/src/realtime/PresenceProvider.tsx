@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Member } from '../auth/AuthProvider';
+import { createLatestSender, openPrivateChannel } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
 
 /** What each open app window tells the others. One presence key per person. */
@@ -33,10 +34,13 @@ const PresenceContext = createContext<PresenceContextValue | null>(null);
 /** Private channel: only active members can join (see realtime.messages policies). */
 export const PRESENCE_TOPIC = 'shop:presence';
 
+/** Quiet period before a presence change is sent (opening/leaving shipments quickly). */
+const PRESENCE_UPDATE_DELAY_MS = 300;
+
 export function PresenceProvider({ member, children }: { member: Member; children: ReactNode }) {
   const [metas, setMetas] = useState<PresenceMeta[]>([]);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const subscribedRef = useRef(false);
+  /** Sends my presence state; set while the presence channel is open. */
+  const senderRef = useRef<ReturnType<typeof createLatestSender<PresenceMeta>> | null>(null);
   const meRef = useRef<PresenceMeta>({
     user_id: member.userId,
     display_name: member.displayName,
@@ -45,33 +49,47 @@ export function PresenceProvider({ member, children }: { member: Member; childre
 
   useEffect(() => {
     meRef.current = { ...meRef.current, user_id: member.userId, display_name: member.displayName };
-    const channel = supabase.channel(PRESENCE_TOPIC, {
-      config: { private: true, presence: { key: member.userId } },
-    });
-    channelRef.current = channel;
+    let channel: RealtimeChannel | null = null;
+    let subscribed = false;
 
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState<PresenceMeta>();
-      setMetas(Object.values(state).flat());
-    });
+    // Presence updates are combined: only the latest state is sent, after a short quiet
+    // period, and never twice in a row (the server closes channels that send too many).
+    const sender = createLatestSender<PresenceMeta>((meta) => {
+      if (subscribed) void channel?.track(meta);
+    }, PRESENCE_UPDATE_DELAY_MS);
+    senderRef.current = sender;
 
-    void supabase.realtime.setAuth().then(() =>
-      channel.subscribe((status) => {
-        subscribedRef.current = status === 'SUBSCRIBED';
-        if (status === 'SUBSCRIBED') void channel.track(meRef.current);
-      }),
-    );
+    const close = openPrivateChannel(supabase, PRESENCE_TOPIC, {
+      presenceKey: member.userId,
+      setup: (fresh) => {
+        channel = fresh;
+        fresh.on('presence', { event: 'sync' }, () => {
+          setMetas(Object.values(fresh.presenceState<PresenceMeta>()).flat());
+        });
+      },
+      onStatus: (status) => {
+        subscribed = status === 'SUBSCRIBED';
+        if (status === 'SUBSCRIBED') {
+          // New join (first time or after a reconnect): announce the current state now.
+          sender.forget();
+          sender.sendNow(meRef.current);
+        } else if (status === 'CLOSED') {
+          setMetas([]); // closed by the server; a fresh channel is on its way
+        }
+      },
+    });
 
     return () => {
-      subscribedRef.current = false;
-      channelRef.current = null;
-      void supabase.removeChannel(channel);
+      sender.cancel();
+      if (senderRef.current === sender) senderRef.current = null;
+      close();
     };
   }, [member.userId, member.displayName]);
 
   const setViewingShipment = useCallback((shipmentId: string | null) => {
     meRef.current = { ...meRef.current, shipment_id: shipmentId };
-    if (subscribedRef.current) void channelRef.current?.track(meRef.current);
+    // Before the channel is open this only updates meRef; it is sent on SUBSCRIBED.
+    senderRef.current?.schedule(meRef.current);
   }, []);
 
   const value = useMemo<PresenceContextValue>(() => {

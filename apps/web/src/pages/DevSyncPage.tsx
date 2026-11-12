@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { Icon } from '../components/Icon';
+import { openPrivateChannel } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
 import { usePresence, useViewingShipment } from '../realtime/PresenceProvider';
 import { ViewersBadge } from '../realtime/ViewersBadge';
@@ -47,35 +48,36 @@ export function DevSyncPage() {
       if (!cancelled) setDbValue(data.value);
     }
 
-    const channel = supabase
-      .channel(`shop:probe:${label}`, { config: { private: true } })
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sync_probe', filter: `label=eq.${label}` },
-        (payload) => {
-          const row = payload.new as { value?: string };
-          if (typeof row.value === 'string') setDbValue(row.value);
-        },
-      )
-      // "live" only once the database-changes listener is really attached.
-      .on('system', {}, (payload: { extension?: string; status?: string }) => {
-        if (payload.extension === 'postgres_changes' && payload.status === 'ok') {
-          setStatus('live');
-          // Catch anything written between the first load and the listener being ready.
-          load().catch((e: unknown) => setError(String((e as Error).message ?? e)));
-        }
-      });
-
-    void supabase.realtime.setAuth().then(() =>
-      channel.subscribe((s) => {
+    const close = openPrivateChannel(supabase, `shop:probe:${label}`, {
+      setup: (channel) => {
+        channel
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'sync_probe', filter: `label=eq.${label}` },
+            (payload) => {
+              const row = payload.new as { value?: string };
+              if (!cancelled && typeof row.value === 'string') setDbValue(row.value);
+            },
+          )
+          // "live" only once the database-changes listener is really attached.
+          .on('system', {}, (payload: { extension?: string; status?: string }) => {
+            if (cancelled) return;
+            if (payload.extension === 'postgres_changes' && payload.status === 'ok') {
+              setStatus('live');
+              // Catch anything written between the first load and the listener being ready.
+              load().catch((e: unknown) => setError(String((e as Error).message ?? e)));
+            }
+          });
+      },
+      onStatus: (s) => {
         if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') setStatus('offline');
-      }),
-    );
+      },
+    });
     load().catch((e: unknown) => setError(String((e as Error).message ?? e)));
 
     return () => {
       cancelled = true;
-      void supabase.removeChannel(channel);
+      close();
     };
   }, [label]);
 
