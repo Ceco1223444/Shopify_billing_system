@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lookupFailure } from './runImport';
+import { lookupFailure } from './failures';
 
 describe('lookupFailure', () => {
   it('a database without the Phase 2 migration is "not ready", not "offline"', () => {
