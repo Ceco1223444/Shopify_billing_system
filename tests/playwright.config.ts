@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = 'http://localhost:5173';
+// A port of its own: never reuse a `pnpm dev` / `pnpm dev:hosted` server on 5173,
+// so the tests always talk to the LOCAL Supabase stack (mode development -> apps/web/.env.local).
+const port = 5199;
+const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -19,9 +22,9 @@ export default defineConfig({
     timezoneId: 'Europe/Sofia',
   },
   webServer: {
-    command: 'pnpm --filter @happyhome/web dev',
+    command: `pnpm --filter @happyhome/web exec vite --mode development --port ${port} --strictPort`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

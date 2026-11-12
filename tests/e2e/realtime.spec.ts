@@ -1,14 +1,13 @@
-import { expect, test } from '@playwright/test';
 import { uniq } from '../support/schema';
 import { TEST_USERS } from '../support/users';
-import { openAs } from './helpers';
+import { expect, test } from './helpers';
 
 test('an edit in one window appears in another user’s window in under 3 seconds', async ({
-  browser,
+  openAs,
 }) => {
   const probe = uniq('e2e');
-  const owner = await openAs(browser, TEST_USERS.owner);
-  const packer = await openAs(browser, TEST_USERS.packer);
+  const owner = await openAs(TEST_USERS.owner);
+  const packer = await openAs(TEST_USERS.packer);
 
   await owner.goto(`/dev/sync?probe=${probe}`);
   await packer.goto(`/dev/sync?probe=${probe}`);
@@ -30,9 +29,9 @@ test('an edit in one window appears in another user’s window in under 3 second
   await expect(owner.getByTestId('probe-value')).toHaveText(reply, { timeout: 3000 });
 });
 
-test('presence: each person sees who else is looking at the same shipment', async ({ browser }) => {
-  const owner = await openAs(browser, TEST_USERS.owner);
-  const packer = await openAs(browser, TEST_USERS.packer);
+test('presence: each person sees who else is looking at the same shipment', async ({ openAs }) => {
+  const owner = await openAs(TEST_USERS.owner);
+  const packer = await openAs(TEST_USERS.packer);
 
   await owner.goto('/dev/sync');
   await packer.goto('/dev/sync');
