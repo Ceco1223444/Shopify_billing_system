@@ -1,0 +1,8 @@
+{
+  "name": "@happyhome/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Placeholder. Electron shell around the web app for silent label printing (Phase 9 / Phase 12).",
+  "type": "module",
+  "scripts": {}
+}

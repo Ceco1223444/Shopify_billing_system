@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - packages/*
+  - tests
+minimumReleaseAgeExclude:
+  - prettier@3.10.1

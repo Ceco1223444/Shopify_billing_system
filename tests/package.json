@@ -1,0 +1,22 @@
+{
+  "name": "@happyhome/tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Database (migrations, grants, RLS, realtime, storage) and end-to-end tests against a local Supabase stack.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:integration": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@happyhome/core": "workspace:*",
+    "@playwright/test": "1.65.0",
+    "@supabase/supabase-js": "2.119.0",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "pg": "8.23.1",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

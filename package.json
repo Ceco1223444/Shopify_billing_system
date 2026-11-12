@@ -1,0 +1,39 @@
+{
+  "name": "happyhome-shipping-hub",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @happyhome/web dev",
+    "dev:hosted": "pnpm --filter @happyhome/web dev:hosted",
+    "build": "pnpm -r build",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @happyhome/core --filter @happyhome/web test",
+    "test:integration": "pnpm --filter @happyhome/tests test:integration",
+    "test:e2e": "pnpm --filter @happyhome/tests test:e2e",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:types": "node scripts/gen-db-types.mjs",
+    "env:local": "node scripts/write-local-env.mjs",
+    "member:add": "node scripts/add-member.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@supabase/supabase-js": "2.119.0",
+    "eslint": "10.14.0",
+    "eslint-plugin-i18next": "6.1.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "supabase": "3.1.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}

@@ -1,0 +1,10 @@
+legacy/
+docs/
+pnpm-lock.yaml
+supabase/.temp/
+supabase/.branches/
+packages/core/src/database.types.ts
+**/dist/
+**/coverage/
+tests/test-results/
+tests/playwright-report/
