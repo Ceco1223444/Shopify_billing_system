@@ -1,0 +1,42 @@
+import type { CourierMode, SupportedCarrier } from './domain';
+
+/**
+ * Default values seeded into the `settings` table (key -> jsonb value) by
+ * supabase/migrations/*_seed_settings.sql. The owner edits them in the UI later.
+ * The integration tests check that the database seed matches this object.
+ */
+export interface AppSettings {
+  sender_profile: Record<string, unknown>;
+  office_range_km: number;
+  duplicate_window_hours: number;
+  default_parcel_weight_g: number;
+  packaging_weight_g: number;
+  packaging_cost_cents: number;
+  courier_fee_payer: 'SENDER' | 'RECIPIENT';
+  home_carrier_tie_break: SupportedCarrier;
+  hidden_columns: string[];
+  raw_csv_retention_days: number;
+  label_paper: 'A6' | 'A4' | 'A4_4xA6';
+  courier_modes: Record<SupportedCarrier, CourierMode>;
+  econt_env: 'demo' | 'production';
+  sender_offices: Partial<Record<SupportedCarrier, string>>;
+}
+
+export type SettingKey = keyof AppSettings;
+
+export const SETTINGS_DEFAULTS: AppSettings = {
+  sender_profile: {},
+  office_range_km: 5,
+  duplicate_window_hours: 48,
+  default_parcel_weight_g: 1500,
+  packaging_weight_g: 200,
+  packaging_cost_cents: 0,
+  courier_fee_payer: 'SENDER',
+  home_carrier_tie_break: 'speedy',
+  hidden_columns: [],
+  raw_csv_retention_days: 90,
+  label_paper: 'A6',
+  courier_modes: { econt: 'api', speedy: 'manual' },
+  econt_env: 'demo',
+  sender_offices: {},
+};
