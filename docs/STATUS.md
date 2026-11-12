@@ -6,7 +6,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
-| 2 Import Shopify CSV batches | Built on branch `phase-2-import`. All local checks green: lint, typecheck, 62 core + 20 web unit tests, 92 integration tests, 14 e2e tests. Merge to `main` + tag `phase-2` once CI is green. Hosted: migration `20261113120000_import_batches` and the `import-batch` Edge Function are **not** pushed yet (steps 16–17). The owner's check with real exports is still to do (step 18). |
+| 2 Import Shopify CSV batches | Built on branch `phase-2-import`. All local checks green: lint, typecheck, 62 core + 20 web unit tests, 92 integration tests, 14 e2e tests. CI green on GitHub (both jobs, [run 43321387482](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43321387482)). Waiting for the owner before merging to `main` + tag `phase-2`: the two brief differences below, and the check with real exports. Hosted: migration `20261113120000_import_batches` and the `import-batch` Edge Function are **not** pushed yet (steps 16–17). The owner's check with real exports is still to do (step 18). |
 | 3–13 | Not started |
 
 ## Setup (15 steps)
