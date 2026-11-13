@@ -1,14 +1,15 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 13 Nov 2026, end of **Phase 3 — Build shipments** (branch `phase-3-shipments`).
+Last updated: 14 Nov 2026, end of **Phase 4 — Courier points database and geocoding** (branch `phase-4-courier-points`).
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
-| 3 Build shipments | Built on branch `phase-3-shipments`. Local checks green: lint, typecheck, 71 core + 23 web unit tests, 114 integration tests, 16 e2e tests. Merge to `main` + tag `phase-3` once CI is green; then the hosted migration (step 19). |
-| 4–13 | Not started |
+| 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). **Still to do by the owner:** the hosted migration (step 19). |
+| 4 Courier points + geocoding | Built on branch `phase-4-courier-points`. Local checks green: lint, typecheck, 180 core + 29 web + 15 unit tests (tests package), 161 integration tests, 20 e2e tests. Merge to `main` + tag `phase-4` once CI is green; then the hosted steps 21–25. |
+| 5–13 | Not started |
 
 ## Setup (15 steps)
 
@@ -45,6 +46,14 @@ Phase 3 on the hosted project (after the phase is merged):
 
 19. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote` (adds `20261114120000_shipments`). The migration also builds shipments for the orders imported before it, batch by batch. No Edge Function change (it passes the new `shipments` summary through).
 20. Your check (prompt pack): a CSV with two orders from the same phone number to the same address → one shipment. The same phone to a different address → two shipments + a call flag.
+
+Phase 4 on the hosted project (after the phase is merged; same terminal as step 9):
+
+21. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote`. It adds `20261115120000_courier_points` (and `20261114120000_shipments` too, if step 19 is not done yet). It turns on `pg_trgm`, `pg_net` and `pg_cron` and schedules the 5-minute "courier-sync-tick" job.
+22. `pnpm exec supabase functions deploy courier-sync`, then `pnpm exec supabase functions deploy geocode`.
+23. **Econt production login (not set yet).** In the Supabase dashboard: **Edge Functions → Secrets** (also under **Project Settings → Edge Functions**), add `ECONT_USERNAME` and `ECONT_PASSWORD`, then **Save**. The office list does not need them (it is public). Until they are set, Econt price calculations use Econt's demo system.
+24. Log in as the owner → **Офиси** → **Обнови офисите**. Wait about a minute. This first press also tells the scheduled job where the function lives. After that, Econt updates every night at 03:00 and Speedy once a week (also at night), with no further action.
+25. Your check: about 640 Econt and 1 390 Speedy points, all "На картата". Choose Пловдив and check that the points are where you expect them.
 
 ## What Phase 1 built
 
@@ -134,6 +143,75 @@ Phase 3 on the hosted project (after the phase is merged):
 | Screens: owner list + chip + split + merge; packer view | `tests/e2e/shipments.spec.ts` |
 | Helpers (open statuses, packer visibility, `tel:` links, list order) | `packages/core/src/shipments.test.ts` |
 
+## What Phase 4 built
+
+- **Courier adapters** (`packages/core/src/couriers/adapter.ts`, P4-01): `CourierAdapter` with `capabilities()` and every method of the spec. Errors are typed codes (`not_supported_in_manual_mode`, `not_available_yet`, `credentials_missing`, `http_error`, `bad_response`, …), never exceptions. Implementations in `supabase/functions/_shared/couriers/` (P4-02):
+  - `EcontApiAdapter`: `listOffices`, `resolveSite` (cities), streets, quarters (P4-07) and `calculate`. The waybill methods answer `not_available_yet` (they belong to Phase 9; tracking and COD payments to Phase 11), because §4 forbids creating waybills now.
+  - `SpeedyManualAdapter`: `listOffices` (public pages) and `calculate` (from the `tariffs` table). Everything else answers `not_supported_in_manual_mode`.
+  - `MockAdapter` (`packages/core`) for tests.
+  - `selectAdapter()` picks by `settings.courier_modes` (P4-03).
+- **Econt types** generated from `https://ee.econt.com/services/openapi.yaml` (P4-06): `pnpm econt:types` → `packages/core/src/couriers/econt-openapi.ts`.
+- **Econt offices** (P4-04, P4-05): `getOffices` with `countryCode: "BGR"`. `id` → `external_id`, `code`, `isAPS` → locker, `isMPS` → mobile, names bg/en, phones, address with coordinates and Econt's confidence, business hours (weekdays + Saturday). The office list always comes from **production** (read-only, needs no login), because the demo list is test data (see "API differences").
+- **Speedy offices** (P4-08, P4-09): the public list page (ID, name, "(АВТОМАТ)" → locker, address with postcode, hours for weekdays / Saturday / Sunday). The public map page `officesmap_v2` embeds the coordinates of **every** office in its page data, so **one** request gives them all, and no per-office requests are needed. Offices missing from the map page get coordinates from Nominatim later (4 per minute, `coord_source = nominatim`, lower confidence).
+  - **P4-11: this source is a public web page, not an API.** Phase 13 replaces it with the Speedy `location/office` API (`SpeedyApiAdapter`).
+  - **P4-12, Speedy widget v3** (`office_locator_widget_v3`): it can be embedded in an `<iframe>`. When a person picks an office, it sends only the office **ID** to the parent page with `window.parent.postMessage(…, "*")` (any origin). Phase 8 must accept the message only from `https://services.speedy.bg` and look the ID up in `courier_offices`. The widget draws its map with **Google Maps**, which the brief does not want, so Phase 8 should use our own searchable list (`search_points`, `points_in_city`) and keep the widget as a fallback at most.
+- **Sync** (P4-13 … P4-16, `packages/core/src/couriers/sync.ts` + `supabase/functions/courier-sync`):
+  - One run per courier in `courier_sync_runs` (status, stage, counts, warnings, error code). Stages: fetch (whole list, checked, staged in `private.courier_sync_items`) → apply (upsert in batches of 300, one transaction each) → finish (points not in the list → `active = false`, `deactivated_at`; **never deleted**). Each stage survives an interruption; the next call resumes the same run (lease + attempt counter, at most 10 attempts). Unchanged points are recognised by a content hash, so they are not rewritten.
+  - **Broken source guard (P4-10):** an empty list, an unreadable page, or a list shorter than half of the active points (once 20+ are active) fails the run with a code. Nothing is changed or deactivated, and the owner sees the red banner.
+  - **Schedule:** pg_cron calls `private.courier_sync_tick()` every 5 minutes. It starts Econt once a day from 03:00 Europe/Sofia, and Speedy from 03:00 when the last good Speedy run is more than 6½ days old. Within that night window it retries a failed run after 30 minutes. Every tick also continues unfinished runs and geocodes Speedy offices without coordinates. The call to the function uses a random token kept in `private.app_config` (never in the code).
+  - **"Обнови офисите"** (owner only) starts both couriers. The work runs in the background (`EdgeRuntime.waitUntil`); the page follows the progress.
+- **SQL helpers** (P4-17 … P4-19), for members:
+  - `nearest_points(lat, lng, carriers[], types[], max_km = 5, limit = 10)`: PostGIS distance on the GiST index, closest first, at most 200.
+  - `points_in_city(city or postcode)`: the city in Cyrillic or Latin, with or without "гр."; a postcode gives every point of that town.
+  - `search_points(text, carriers[], types[], limit)`: `pg_trgm` word similarity on a Latin search column, so "Пловдив Тракия" and "plovdiv trakia" find the same points.
+  - `courier_points_stats()`: counts for the admin page.
+- **Geocoder** (P4-20 … P4-25, `packages/core/src/geo/` + `supabase/functions/geocode`):
+  - Input: the Shopify address fields. Flat details (вх., ет., ап.) are removed first, so they never leave the database and two flats in one block share one cache entry.
+  - Query variants, most precise first: original, without postcode, the street without the ж.к./бл. parts, the street name without "ул.", Latin (Bulgarian streamlined system), ж.к. + бл., ж.к. alone, postcode + town, town.
+  - Nominatim with `countrycodes=bg` and only results inside Bulgaria (P4-23). A hit must also lie in the town the address names (spelling-tolerant check on Nominatim's address details).
+  - Precision street | block | quarter | city | failed (P4-24).
+  - Cache (P4-25): by normalized address key ("ул." = "улица", "гр. Пловдив" = "Пловдив", spacing, punctuation, flat details). Every query string is cached as well, so "4000 Пловдив" is asked once for everyone. Failures are cached too: an address is never sent twice.
+  - Rate (P4-22): each request reserves a slot in the database (`geocoder_reserve`), at least 1.2 s apart across all callers, and 15 s apart for scheduled jobs. A caller that would wait too long gets "busy" instead. The User-Agent names the app. The service URL and an optional contact e-mail are in `settings.geocoder`, so the service can be switched without a software update.
+- **Owner page "Офиси"** (P4-26, P4-27): counts per courier and type, how many are on the map, closed points kept, last successful update, the last run's counts, the current error in plain Bulgarian, the source, and **Обнови офисите**. A Leaflet + OpenStreetMap map of one town (quick buttons for the big towns, or type a town or postcode), with markers that show the courier letter on a shape per type (square office, circle locker, diamond mobile), popups, and the list of the same points below it. Search by name or address. The red banner "Списъкът с офиси на Спиди / Еконт не се обнови" is shown to the owner on every screen until the next good update. Packers see none of it. The page loads on demand (Leaflet is only downloaded by the owner).
+
+### Phase 4 tests
+
+| ID | Where |
+|---|---|
+| T4-01 sync: new / changed / missing points, never deleted | `tests/integration/courier-sync.test.ts` (real DB, mock adapters through the real Edge Function), `packages/core/src/couriers/sync.test.ts` |
+| T4-02 haversine within 0.5 % | `packages/core/src/geo/distance.test.ts` (against a Vincenty WGS84 reference), `tests/integration/points.test.ts` (PostGIS against the same pairs) |
+| T4-03 same address twice → cache, no request | `tests/integration/geocode.test.ts` |
+| T4-04 Speedy parser on a saved snapshot | `packages/core/test/speedy-parser.test.ts` (124 entries, 61 lockers; the map page with every coordinate), `packages/core/test/econt-offices.test.ts` |
+| T4-05 broken snapshot → data kept, red banner | `packages/core/test/speedy-parser.test.ts`, `tests/integration/courier-sync.test.ts`, `tests/e2e/offices.spec.ts` (banner) |
+| T4-06 never more than 1 request per second | `tests/integration/geocode.test.ts` (concurrent callers, the reservation itself, scheduled pace) |
+| T4-07 interrupted sync → resume, no duplicates | `tests/integration/courier-sync.test.ts`, `packages/core/src/couriers/sync.test.ts` |
+| T4-08 live smoke test | manual, results below |
+| No Speedy REST API, no Google anywhere | `tests/unit/no-forbidden-services.test.ts` (scans the code) |
+| Adapter capabilities and manual-mode answers | `tests/unit/courier-adapters.test.ts` |
+| nearest / city / search, RLS on the new tables and functions | `tests/integration/points.test.ts`, `tests/integration/schema.test.ts` |
+| Admin page, search, button, packer view | `tests/e2e/offices.spec.ts`, `apps/web/src/offices/syncStatus.test.ts` |
+
+### T4-08 live smoke test (14 Nov 2026, local stack, read-only calls)
+
+| Source | Points | By type | With coordinates |
+|---|---|---|---|
+| Econt **demo** `getOffices` | 586 | 572 offices, 2 lockers, 12 mobile | 582 |
+| Econt **production** `getOffices` | 639 | 569 offices, 47 lockers, 23 mobile | 639 |
+| Speedy public list + map page | 1 389 | 459 offices, 930 lockers | 1 389 |
+
+A full sync stored all 2 028 points in 0.7 s (Econt) + 2.0 s (Speedy). `nearest_points(42.1475, 24.7495, max 1 km)` (central Plovdiv) returned Speedy "ПЛОВДИВ - ОФИС" at 0.11 km, Econt "Пловдив Капана" at 0.28 km, then Speedy lockers and an Econt ВИП office. `points_in_city('Русе')`: 17 Econt + 34 Speedy points. `search_points('plovdiv trakia')` → first hit Econt "Еконтомат Тракия".
+
+### Geocoder hit rate (escalation rule: "report the hit rate")
+
+Measured on 18 **public** courier office addresses whose true coordinates the couriers publish (no customer data), through the real `geocode` function and the live Nominatim:
+
+| | Street | Block | Quarter | Town only | Failed | ≤ 250 m | ≤ 1 km |
+|---|---|---|---|---|---|---|---|
+| First version | 6 | 1 | 2 | 9 | 0 | 7 | 12 |
+| Final | 12 | 1 | 2 | 3 | 0 | 13 | 15 |
+
+All final hits are in the right town. About 2.4 requests per new address (cached afterwards). Two fixes made the difference: many OpenStreetMap streets in Bulgaria are named without "ул.", so "Хаджи Димитър 42, Плевен" is found but "ул. Хаджи Димитър 42, Плевен" is not; and a check that the hit is in the named town (without it, "ул. София 7, Айдемир" landed in Sofia, 349 km away). **Good enough for choosing the nearest office (Phase 5), with one caveat:** for "town only" results the nearest office is a guess, so Phase 5 should treat precision `city` as "ask" rather than "decide". Real customer addresses (ж.к. + бл. without a street) may score lower than office addresses. Phase 5 will show the real rate on the imported orders.
+
 ## Security model (hosted settings: Data API on, auto-expose OFF, auto-RLS ON)
 
 | Role | Gets |
@@ -203,6 +281,20 @@ Phase 3:
 - Exclusion flags (cancelled / fulfilled / nothing to ship) are grey: nothing to do. Recipient differences in a combined shipment are grey too, with the values listed.
 - A merge deletes the second shipment row (its flags move to the merged one; `audit_log` keeps both). A split makes a new shipment. Both mark `manual_overrides.orders`.
 
+Phase 4:
+
+- **"EcontApiAdapter — all methods" (P4-02) vs. "Out of scope: creating, printing or cancelling waybills" (§4).** I followed §4: the waybill methods exist but answer `not_available_yet` (Phase 9; tracking and COD payments Phase 11). Read-only methods work now.
+- **Econt offices always come from production.** It is a public, read-only call that needs no login (the spec allows read-only production calls), and the demo list is test data (different counts, 4 offices without coordinates). Price calculations follow `settings.econt_env` (default `demo`) and use Econt's own published demo test account until the production login is set. That account is public data and is kept in the code; the production login is only read from the Supabase secrets.
+- **Econt hours:** "normal" hours are stored as Monday–Friday, "half day" as Saturday. Econt gives no Sunday hours, so Sunday is left unknown, not "closed".
+- **Speedy coordinates** come from the public map page, which has every office in one request. So there are no per-office requests at all, which is politer than "a few requests per second". Nominatim is only the fallback for offices missing from the map page (none on 14 Nov 2026).
+- **Schedule:** "Speedy weekly" = at night (03:00–06:00 Sofia time) once the last good Speedy update is more than 6½ days old. A failed scheduled run is retried after 30 minutes within that window; an interrupted run is resumed, at most 10 attempts per run.
+- **Too short = broken:** a list with less than half of the currently active points (once at least 20 are active) is treated as a broken source, not as "half the offices closed". Nothing is changed and the banner shows. Tell me if a different threshold suits you.
+- **Coordinates confidence** (0–3, like Econt's own): 3 = from the courier (Econt confidence 3, Speedy map page); 2 = street or block from Nominatim; 1 = quarter; 0 = town only. Econt's own confidence is kept as it is for Econt points.
+- **Geocoder privacy:** only the address text goes to Nominatim. Names, phones, e-mails and flat details (вх., ет., ап.) never do. Nominatim's policy asks apps "not to submit personal data". A street address alone is about as little as geocoding can send, but it is still an address, so please confirm you are fine with it (the alternative is geocoding only up to the street, without house or block numbers).
+- **Contact e-mail for Nominatim:** the policy does not require one for an app of this size, so none is sent. `settings.geocoder.email` is there if you want to add one.
+- **Postcode search** (`points_in_city('4000')`) returns every point of the town that has that postcode. Speedy's list has no postcode for offices in the big towns, so Speedy points are found through their town.
+- **Map tiles** come from OpenStreetMap's own tile server, which allows light use with attribution. One owner looking at one town at a time is light use; nothing is downloaded in advance.
+
 ## Known gaps
 
 - Hosted project: migrations are pushed. Still to do by the owner: sign-ups off, Realtime public access off, `.env.admin`, creating the members, `.env.hosted.local` (steps 11–14).
@@ -218,6 +310,10 @@ Phase 3:
 - Office detection for "same destination" is a keyword heuristic until Phase 5 (real office / locker detection).
 - Packers cannot delete rows, including `shipment_orders`. If Phase 3 lets packers split a combined shipment, that needs an RPC or a "detached" flag instead of a delete.
 - The repository is **public**. Never commit real CSV exports, customer data, `.env*` files or keys.
+- **Hosted Phase 4 is not set up yet** (steps 21–25). Until the first **Обнови офисите** on the hosted project, the scheduled job knows no function URL and does nothing ("not configured").
+- **Econt production login missing** on the hosted project (step 23). Nothing in Phase 4 needs it; price calculations stay on Econt's demo until it is set.
+- **Geocoding customer addresses is ready but not used yet**: Phase 5 calls the `geocode` function for imported orders. The hit rate above is from courier office addresses; customer addresses may be worse.
+- The map in the admin page puts up to a few hundred markers on one town (Sofia: about 400). They overlap at town zoom; zoom in or use the list below the map.
 
 ## API / tool differences found
 
@@ -225,3 +321,12 @@ Phase 3:
 - Supabase CLI 3.x: `db push`, `db advisors` etc. default to the **local** stack. Use `--remote` for the linked project. `supabase login` refuses to run without an interactive terminal (`LoginMissingTokenError`).
 - Hosted checks run 12 Nov 2026: a signed-out request to `settings`, `members`, `orders` or `audit_log` returns 401 / `42501 permission denied`; a signed-out storage listing returns `[]`. The hosted project has both legacy (anon / service_role) and new (publishable / secret) keys. Use the new ones.
 - `supabase db lint` reports errors inside PostGIS's own functions (extension code, not ours). Lint our schemas with `pnpm exec supabase db lint -s public,private`: clean. `supabase db advisors`: no issues.
+
+Phase 4 (escalation rule: "document the difference"; none of them blocked the phase):
+
+- **Econt business hours** (`normalBusinessHoursFrom` / `…To`, `halfDayBusinessHours…`) are epoch milliseconds in the live API. The OpenAPI spec says "time" strings. The code reads both and converts to "HH:MM" in Sofia time.
+- **Econt demo vs. production office lists differ:** 586 vs. 639 points, and 4 demo offices have no coordinates. The demo list is test data, so the offices come from production (read-only).
+- **Speedy list page:** the office ID is in the entry's `id` attribute and in brackets after the name. The postcode in brackets is missing for many offices in the big towns (e.g. "гр. Пловдив жк Тракия бл. 148"). Working hours are given per weekdays / Saturday / Sunday.
+- **Speedy map page:** `officesmap_v2/?id=<any office>` contains the coordinates of **all** offices (`Y` = latitude, `X` = longitude), not just the one asked for.
+- **Speedy widget v3** reports the chosen office by `postMessage` to any origin (`"*"`), and only the ID. It uses Google Maps (see P4-12 above).
+- **Nominatim:** in `jsonv2`, `addresstype` of a road is the road's type (`residential`, `tertiary`, …), not `road`. A plain street could therefore look like a residential area (ж.к.). The precision now uses the result's category as well.
