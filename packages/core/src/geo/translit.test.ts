@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasCyrillic, latinKey, transliterateBg } from './translit.ts';
+import { hasCyrillic, latinKey, placeSkeleton, transliterateBg } from './translit.ts';
 
 describe('transliterateBg (streamlined system)', () => {
   it.each([
@@ -44,5 +44,23 @@ describe('transliterateBg (streamlined system)', () => {
   it('hasCyrillic', () => {
     expect(hasCyrillic('ул. Иван Вазов')).toBe(true);
     expect(hasCyrillic('ul. Ivan Vazov')).toBe(false);
+  });
+});
+
+describe('placeSkeleton', () => {
+  it('folds scripts and common Latin spellings of the same place together', () => {
+    for (const n of ['София', 'Sofia', 'Sofiya', 'SOFIA', 'гр. София'.slice(4)])
+      expect(placeSkeleton(n)).toBe('sf');
+    for (const n of ['Кърджали', 'Kardzhali', 'Kurdzhali', 'Kardjali'])
+      expect(placeSkeleton(n)).toBe('krjl');
+    for (const n of ['Велико Търново', 'Veliko Tarnovo', 'Veliko Turnovo'])
+      expect(placeSkeleton(n)).toBe('vlk trnv');
+    expect(placeSkeleton('Хисаря')).toBe(placeSkeleton('Hissar'));
+    expect(placeSkeleton('Шумен')).toBe(placeSkeleton('Šumen'));
+  });
+
+  it('keeps different places apart', () => {
+    expect(placeSkeleton('Айдемир')).not.toBe(placeSkeleton('София'));
+    expect(placeSkeleton('Пловдив')).not.toBe(placeSkeleton('Плевен'));
   });
 });

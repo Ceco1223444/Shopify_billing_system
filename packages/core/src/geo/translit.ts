@@ -98,3 +98,33 @@ export function hasCyrillic(text: string): boolean {
 export function latinKey(text: string): string {
   return transliterateBg(text.toLowerCase()).replace(/\s+/g, ' ').trim();
 }
+
+const SKELETON_SOUNDS: [RegExp, string][] = [
+  [/dzh|dj|zh/g, 'j'],
+  [/sht/g, 'st'],
+  [/ch|tch|tsch/g, 'c'],
+  [/sh|sch/g, 's'],
+  [/ts|tz/g, 'c'],
+  [/kh/g, 'h'],
+  [/w/g, 'v'],
+  [/q/g, 'k'],
+  [/x/g, 'ks'],
+];
+
+/**
+ * A spelling-tolerant key for a place name: Latin, no vowels, no doubled letters, and the
+ * usual spelling variants folded together, so "София", "Sofia" and "Sofiya" all give "sf" and
+ * "Кърджали", "Kardzhali" and "Kurdjali" give "krjl". Only for comparing names, never shown.
+ */
+export function placeSkeleton(name: string): string {
+  let s = latinKey(name)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z\s]/g, ' ');
+  for (const [re, to] of SKELETON_SOUNDS) s = s.replace(re, to);
+  return s
+    .replace(/[aeiouy]/g, '')
+    .replace(/([a-z])\1+/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

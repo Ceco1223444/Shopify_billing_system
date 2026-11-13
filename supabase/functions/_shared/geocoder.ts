@@ -4,7 +4,8 @@
  *  1. The normalized address key is looked up in geocode_cache: a known address is NEVER sent
  *     to Nominatim again (P4-25, T4-03). Failures are cached too.
  *  2. Otherwise the query variants are tried, most precise first. Every query string is cached
- *     on its own as well, so a shared "4000 Пловдив" is asked once for all customers.
+ *     on its own as well, so a shared "4000 Пловдив" is asked once for all customers. A hit that
+ *     is not in the town the address names is skipped (a street can share a town's name).
  *  3. Before each request the app reserves a slot in the database (geocoder_reserve): at least
  *     1.2 s between any two requests of the whole app, 15 s for scheduled jobs (T4-06).
  *     If the next slot is too far away the call answers "busy" instead of waiting.
@@ -15,6 +16,7 @@ import {
   addressKey,
   APP_USER_AGENT,
   buildQueryVariants,
+  hitInCity,
   isBulgaria,
   NOMINATIM_BULK_INTERVAL_MS,
   nominatimSearchUrl,
@@ -214,13 +216,19 @@ export async function geocodeAddress(
               type: hit.type,
               placeRank: hit.placeRank,
               houseNumber: hit.houseNumber,
+              places: hit.places ?? [],
             }
           : {},
       });
     }
 
     const precision = precisionOf(hit, variant.kind, parsed);
-    if (hit && precision !== 'failed') {
+    // The city variants ARE the town; every other hit must lie in the town the address names.
+    const inTown =
+      variant.kind === 'city' || variant.kind === 'city_zip' || !hit || !parsed.city
+        ? true
+        : hitInCity(hit, parsed.city);
+    if (hit && precision !== 'failed' && inTown) {
       const outcome: GeocodeOutcome = {
         key,
         lat: hit.lat,

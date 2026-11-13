@@ -34,15 +34,15 @@ function fakeNominatim(answers: Record<string, unknown[]>, status = 200) {
   return { fetch, calls };
 }
 
-const result = (lat: number, lng: number, addresstype: string, rank: number) => ({
+const result = (lat: number, lng: number, addresstype: string, rank: number, town = 'Пловдив') => ({
   lat: String(lat),
   lon: String(lng),
-  display_name: `${addresstype} ${lat},${lng}`,
+  display_name: `${addresstype} ${lat}, ${town}, България`,
   addresstype,
   category: 'place',
   type: addresstype,
   place_rank: rank,
-  address: { country_code: 'bg' },
+  address: { country_code: 'bg', city: town },
 });
 
 function deps(fetch: typeof globalThis.fetch, over: Partial<GeocoderDeps> = {}): GeocoderDeps {
@@ -128,6 +128,25 @@ describe('T4-03: cache', () => {
       deps(nominatim.fetch),
     );
     expect(nominatim.calls.map((c) => c.q)).not.toContain('ж.к. Тракия, Пловдив');
+  });
+
+  it('a hit in another town is skipped (a street can share a town name)', async () => {
+    // Live case: "ул. София 7, Айдемир" without "ул." was answered with a house in Sofia.
+    const nominatim = fakeNominatim({
+      'София 7, Айдемир': [result(42.69, 23.32, 'building', 30, 'София')],
+      Айдемир: [result(44.05, 27.18, 'village', 19, 'Айдемир')],
+    });
+    const out = await geocodeAddress(
+      { address1: 'ул. София 7', city: 'Айдемир' },
+      deps(nominatim.fetch),
+    );
+    expect(out).toMatchObject({ precision: 'city', variant: 'city', lat: 44.05 });
+    expect(nominatim.calls.map((c) => c.q)).toEqual([
+      'ул. София 7, Айдемир',
+      'София 7, Айдемир',
+      'ul. Sofia 7, Aydemir',
+      'Айдемир',
+    ]);
   });
 
   it('an address that cannot be found is remembered as failed and not asked again', async () => {
@@ -247,7 +266,7 @@ describe('points without coordinates from the courier', () => {
     async () => {
       await addPending('G1', 'гр. Айтос [8500] ул. Славянска No 34');
       const nominatim = fakeNominatim({
-        'ул. Славянска 34, 8500 Айтос': [result(42.7, 27.25, 'building', 30)],
+        'ул. Славянска 34, 8500 Айтос': [result(42.7, 27.25, 'building', 30, 'Айтос')],
       });
       const tried = await geocodePendingPoints(
         {

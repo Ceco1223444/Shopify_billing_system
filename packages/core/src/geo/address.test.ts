@@ -105,7 +105,7 @@ describe('small cleaners', () => {
 });
 
 describe('buildQueryVariants (P4-21)', () => {
-  it('street address: original (with and without postcode), Latin, city + postcode, city', () => {
+  it('street address: original (with and without postcode), bare street, Latin, city + postcode, city', () => {
     const v = buildQueryVariants({
       address1: 'ул. Кукленско шосе 11',
       address2: 'ет. 2',
@@ -115,6 +115,7 @@ describe('buildQueryVariants (P4-21)', () => {
     expect(v).toEqual([
       { kind: 'original', q: 'ул. Кукленско шосе 11, 4000 Пловдив' },
       { kind: 'original_no_zip', q: 'ул. Кукленско шосе 11, Пловдив' },
+      { kind: 'street_bare', q: 'Кукленско шосе 11, Пловдив' },
       { kind: 'latin', q: 'ul. Kuklensko shose 11, Plovdiv' },
       { kind: 'city_zip', q: '4000 Пловдив' },
       { kind: 'city', q: 'Пловдив' },
@@ -134,6 +135,12 @@ describe('buildQueryVariants (P4-21)', () => {
       city: 'София',
     });
     expect(v.find((x) => x.kind === 'street_only')?.q).toBe('ул. Никола Габровски 12, София');
+    expect(v.find((x) => x.kind === 'street_bare')?.q).toBe('Никола Габровски 12, София');
+  });
+
+  it('a house number range: the first number', () => {
+    const v = buildQueryVariants({ address1: 'ул. Марагидик 10-12', city: 'София' });
+    expect(v.find((x) => x.kind === 'street_bare')?.q).toBe('Марагидик 10, София');
   });
 
   it('never contains flat details, names or phones', () => {
@@ -156,7 +163,8 @@ describe('buildQueryVariants (P4-21)', () => {
 
   it('Latin input gets no extra Latin variant', () => {
     const v = buildQueryVariants({ address1: 'ul. Ivan Vazov 12', city: 'Sofia' });
-    expect(v.map((x) => x.kind)).toEqual(['original', 'city']);
+    expect(v.map((x) => x.kind)).toEqual(['original', 'street_bare', 'city']);
+    expect(v[1]?.q).toBe('Ivan Vazov 12, Sofia');
   });
 
   it('no city → nothing to ask', () => {

@@ -9,6 +9,7 @@
  */
 import type { GeocodePrecision, ParsedAddress, QueryVariantKind } from './address.ts';
 import { isInBulgaria } from './distance.ts';
+import { placeSkeleton } from './translit.ts';
 
 export const NOMINATIM_DEFAULT_URL = 'https://nominatim.openstreetmap.org';
 
@@ -41,7 +42,24 @@ export interface NominatimHit {
   type: string;
   placeRank: number;
   houseNumber: string | null;
+  /** The settlement and district names from the address details (city, town, village, …). */
+  places?: string[];
 }
+
+/** Address detail keys that name a settlement or a part of one (not the found object itself). */
+const PLACE_KEYS = [
+  'city',
+  'town',
+  'village',
+  'hamlet',
+  'municipality',
+  'city_district',
+  'borough',
+  'suburb',
+  'county',
+  'state_district',
+  'state',
+] as const;
 
 export function nominatimSearchUrl(
   baseUrl: string,
@@ -79,9 +97,31 @@ export function parseNominatimResults(json: unknown): NominatimHit | null {
       type: typeof r.type === 'string' ? r.type : '',
       placeRank: Number(r.place_rank ?? 0),
       houseNumber: typeof address.house_number === 'string' ? address.house_number : null,
+      places: PLACE_KEYS.map((k) => address[k]).filter((v): v is string => typeof v === 'string'),
     };
   }
   return null;
+}
+
+/**
+ * True when the hit lies in the town the address names. A free-form query can match something
+ * of the same name elsewhere: "София 7, Айдемир" (ул. София in the village Айдемир) was answered
+ * with a place called "Айдемир" in Sofia, 349 km away. The town must be one of the settlement
+ * names in the hit's address details, compared spelling-tolerantly ("Sofiya" = "София").
+ * Without details (older cache entries) the display name minus its first part (the found object
+ * itself) is used.
+ */
+export function hitInCity(
+  hit: Pick<NominatimHit, 'displayName' | 'places'>,
+  city: string,
+): boolean {
+  const want = placeSkeleton(city.split(',')[0] ?? '');
+  if (!want) return true;
+  const places = hit.places?.length ? hit.places : hit.displayName.split(',').slice(1);
+  return places.some((part) => {
+    const got = placeSkeleton(part);
+    return got === want || got.startsWith(`${want} `);
+  });
 }
 
 const QUARTER_TYPES = new Set([
@@ -113,6 +153,14 @@ export function precisionOf(
   address: Pick<ParsedAddress, 'street' | 'block'>,
 ): GeocodePrecision {
   if (!hit) return 'failed';
+  if (hit.category === 'highway' && hit.placeRank >= 26) {
+    // A road. Its addresstype can read "residential" or "tertiary" (the road type), so it must
+    // not be taken for a ж.к. It is street level only when a street was asked for: a road named
+    // after a ж.к. ("жк. Тракия") found from the ж.к. is just the quarter.
+    const askedStreet =
+      !!address.street && !['quarter_block', 'quarter', 'city_zip', 'city'].includes(variant);
+    return askedStreet ? 'street' : 'quarter';
+  }
   if (QUARTER_TYPES.has(hit.addressType)) return 'quarter';
   if (CITY_TYPES.has(hit.addressType)) return 'city';
   if (hit.placeRank >= 26) {

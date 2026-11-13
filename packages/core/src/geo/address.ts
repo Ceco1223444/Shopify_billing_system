@@ -27,6 +27,7 @@ export type QueryVariantKind =
   | 'original_no_zip'
   | 'latin'
   | 'street_only'
+  | 'street_bare'
   | 'quarter_block'
   | 'quarter'
   | 'city_zip'
@@ -144,8 +145,13 @@ export function isBulgaria(country: string | null | undefined): boolean {
 
 /**
  * Query variants, most precise first (P4-21): the original text (Cyrillic as typed), without the
- * postcode, transliterated to Latin, the street without the ж.к./бл. parts, the ж.к. + бл. without
- * the street, the ж.к. alone, then city + postcode and the city alone. Duplicates are dropped.
+ * postcode, the street without the ж.к./бл. parts, the street name without "ул."/"бул.",
+ * transliterated to Latin, the ж.к. + бл. without the street, the ж.к. alone, then city +
+ * postcode and the city alone. Duplicates are dropped.
+ *
+ * The bare street name matters: many OpenStreetMap streets in Bulgaria are named without the
+ * "ул." prefix, and Nominatim then finds "Хаджи Димитър 42, Плевен" but not
+ * "ул. Хаджи Димитър 42, Плевен" (tried on public courier office addresses, Nov 2026).
  */
 export function buildQueryVariants(input: GeocodeInput): QueryVariant[] {
   const a = parseBgAddress(input);
@@ -161,13 +167,15 @@ export function buildQueryVariants(input: GeocodeInput): QueryVariant[] {
   if (line) {
     add('original', [line, a.zip ? `${a.zip} ${city}` : city]);
     add('original_no_zip', [line, city]);
-    if (hasCyrillic(`${line}, ${city}`))
-      add('latin', [transliterateBg(line), transliterateBg(city)]);
   }
-  const streetText = a.street
-    ? `${a.streetType ? `${a.streetType}.` : ''} ${a.street}${a.number ? ` ${a.number}` : ''}`.trim()
-    : null;
-  if (streetText && (a.quarter || a.block)) add('street_only', [streetText, city]);
+  // A street is only recognised with its "ул."/"бул." word, so streetType is set whenever street is.
+  if (a.street) {
+    const numbered = `${a.street}${a.number ? ` ${a.number}` : ''}`;
+    if (a.quarter || a.block) add('street_only', [`${a.streetType}. ${numbered}`, city]);
+    add('street_bare', [numbered, city]);
+  }
+  if (line && hasCyrillic(`${line}, ${city}`))
+    add('latin', [transliterateBg(line), transliterateBg(city)]);
   if (a.quarter && a.block) add('quarter_block', [`ж.к. ${a.quarter}`, `бл. ${a.block}`, city]);
   if (a.quarter) add('quarter', [`ж.к. ${a.quarter}`, city]);
   if (a.zip) add('city_zip', [`${a.zip} ${city}`]);

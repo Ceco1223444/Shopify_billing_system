@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   nominatimSearchUrl,
   parseNominatimResults,
+  hitInCity,
   precisionOf,
   precisionToConfidence,
   type NominatimHit,
@@ -56,7 +57,7 @@ describe('parseNominatimResults', () => {
         category: 'building',
         type: 'yes',
         place_rank: 30,
-        address: { house_number: '11', country_code: 'bg' },
+        address: { house_number: '11', city: 'Пловдив', country_code: 'bg' },
       },
     ]);
     expect(parsed).toEqual({
@@ -68,6 +69,7 @@ describe('parseNominatimResults', () => {
       type: 'yes',
       placeRank: 30,
       houseNumber: '11',
+      places: ['Пловдив'],
     });
   });
 
@@ -89,13 +91,28 @@ describe('precisionOf (P4-24)', () => {
 
   it('street level for roads and houses', () => {
     expect(precisionOf(hit({}), 'original', street)).toBe('street');
-    expect(precisionOf(hit({ addressType: 'building', placeRank: 30 }), 'original', street)).toBe(
+    expect(
+      precisionOf(
+        hit({ addressType: 'building', category: 'building', placeRank: 30 }),
+        'original',
+        street,
+      ),
+    ).toBe('street');
+  });
+
+  it('a road whose addresstype is the road type is still a street (live Nominatim answer)', () => {
+    const road = hit({ addressType: 'residential', type: 'residential', placeRank: 26 });
+    expect(precisionOf(road, 'street_bare', street)).toBe('street');
+    expect(precisionOf(hit({ addressType: 'tertiary', placeRank: 26 }), 'original', street)).toBe(
       'street',
     );
+    // "жк. Тракия" is also a road name: found from a ж.к. it is only the quarter.
+    expect(precisionOf(road, 'original', blockOnly)).toBe('quarter');
+    expect(precisionOf(road, 'quarter', street)).toBe('quarter');
   });
 
   it('block level for a building found from ж.к. + бл.', () => {
-    const building = hit({ addressType: 'building', placeRank: 30 });
+    const building = hit({ addressType: 'building', category: 'building', placeRank: 30 });
     expect(precisionOf(building, 'quarter_block', blockOnly)).toBe('block');
     expect(precisionOf(building, 'original', blockOnly)).toBe('block');
   });
@@ -105,7 +122,11 @@ describe('precisionOf (P4-24)', () => {
       'quarter',
     );
     expect(
-      precisionOf(hit({ addressType: 'residential', placeRank: 22 }), 'quarter', blockOnly),
+      precisionOf(
+        hit({ addressType: 'residential', category: 'landuse', placeRank: 22 }),
+        'quarter',
+        blockOnly,
+      ),
     ).toBe('quarter');
     expect(precisionOf(hit({ addressType: 'city', placeRank: 16 }), 'city', street)).toBe('city');
     expect(precisionOf(hit({ addressType: 'village', placeRank: 19 }), 'city', street)).toBe(
@@ -127,5 +148,54 @@ describe('precisionOf (P4-24)', () => {
     expect(precisionToConfidence('quarter')).toBe(1);
     expect(precisionToConfidence('city')).toBe(0);
     expect(precisionToConfidence('failed')).toBeNull();
+  });
+});
+
+describe('hitInCity', () => {
+  it('accepts a hit in the named town, however the town is spelled', () => {
+    const sofia = {
+      displayName: '10-12, Марагидик, кв. Подуяне, София, Район Оборище, Столична, София-град',
+      places: ['София', 'кв. Подуяне', 'Район Оборище', 'Столична', 'София-град'],
+    };
+    expect(hitInCity(sofia, 'София')).toBe(true);
+    expect(hitInCity(sofia, 'Sofiya')).toBe(true);
+    expect(hitInCity(sofia, 'Sofia, Bulgaria')).toBe(true);
+    expect(hitInCity({ displayName: '', places: ['Герман', 'Столична'] }, 'Герман')).toBe(true);
+  });
+
+  it('rejects a place of the same name in another town (live case: Айдемир)', () => {
+    // Nominatim's answer for "София 7, Айдемир": an object called "Айдемир" in Sofia.
+    const live = {
+      displayName: 'Айдемир, ж.к. Дървеница, София, Район Студентски, Столична, София-град, 1797',
+      places: ['София', 'ж.к. Дървеница', 'Район Студентски', 'Столична', 'София-град'],
+    };
+    expect(hitInCity(live, 'Айдемир')).toBe(false);
+    // An older cache entry without details: the first part (the object itself) does not count.
+    expect(hitInCity({ displayName: live.displayName }, 'Айдемир')).toBe(false);
+    expect(hitInCity({ displayName: 'x, Пловдив, 4000', places: ['Пловдив'] }, 'Плевен')).toBe(
+      false,
+    );
+  });
+
+  it('parseNominatimResults keeps the settlement names, not the road or house number', () => {
+    const hit = parseNominatimResults([
+      {
+        lat: '43.404',
+        lon: '24.614',
+        display_name: '42, Хаджи Димитър, 9-ти квартал, Плевен, 5800, България',
+        addresstype: 'building',
+        category: 'building',
+        place_rank: 30,
+        address: {
+          house_number: '42',
+          road: 'Хаджи Димитър',
+          suburb: '9-ти квартал',
+          city: 'Плевен',
+          postcode: '5800',
+          country_code: 'bg',
+        },
+      },
+    ]);
+    expect(hit?.places).toEqual(['Плевен', '9-ти квартал']);
   });
 });
