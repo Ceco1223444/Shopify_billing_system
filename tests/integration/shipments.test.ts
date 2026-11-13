@@ -273,7 +273,7 @@ describe('what is combined, and what is not', () => {
   it('P3-14: a shipment without red/amber flags is ready, one with them needs checking', async () => {
     const id = (await shipmentOf(`#${run}-T3-05-a`))!;
     const s = await shipment(id);
-    expect(s.flags_red + s.flags_amber).toBe(0);
+    expect((s.flags_red ?? 0) + (s.flags_amber ?? 0)).toBe(0);
     expect(s.status).toBe('ready');
   });
 
@@ -624,7 +624,7 @@ describe('legacy samples (T3-14 … T3-16)', () => {
     for (const [first, second] of [
       [O.o2002, O.o2007],
       [O.o2006, O.o2011],
-    ]) {
+    ] as const) {
       const s1 = (await shipmentOf(first.name))!;
       const s2 = (await shipmentOf(second.name))!;
       expect(s1).not.toBe(s2);
