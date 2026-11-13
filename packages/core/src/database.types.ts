@@ -62,6 +62,12 @@ isOneToOne: false
       foreignKeyName: "flags_shipment_id_fkey"
       columns: ["shipment_id"]
 isOneToOne: false
+      referencedRelation: "shipment_overview"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "flags_shipment_id_fkey"
+      columns: ["shipment_id"]
+isOneToOne: false
       referencedRelation: "shipments"
       referencedColumns: ["id"]
     },{
@@ -208,6 +214,12 @@ isOneToOne: false
       foreignKeyName: "price_quotes_shipment_id_fkey"
       columns: ["shipment_id"]
 isOneToOne: false
+      referencedRelation: "shipment_overview"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "price_quotes_shipment_id_fkey"
+      columns: ["shipment_id"]
+isOneToOne: false
       referencedRelation: "shipments"
       referencedColumns: ["id"]
     },{
@@ -268,14 +280,14 @@ isOneToOne: false
                   ]
                 },"shipment_orders": {
                   Row: {
-                    "created_at": string,"id": string,"order_id": string,"shipment_id": string,"updated_at": string,"updated_by": string | null,"version": number
+                    "added_by": string,"created_at": string,"id": string,"order_id": string,"shipment_id": string,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"order_id": string,"shipment_id": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "added_by"?: string,"created_at"?: string,"id"?: string,"order_id": string,"shipment_id": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"order_id"?: string,"shipment_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "added_by"?: string,"created_at"?: string,"id"?: string,"order_id"?: string,"shipment_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
@@ -288,20 +300,26 @@ isOneToOne: false
       foreignKeyName: "shipment_orders_shipment_id_fkey"
       columns: ["shipment_id"]
 isOneToOne: false
+      referencedRelation: "shipment_overview"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shipment_orders_shipment_id_fkey"
+      columns: ["shipment_id"]
+isOneToOne: false
       referencedRelation: "shipments"
       referencedColumns: ["id"]
     }
                   ]
                 },"shipments": {
                   Row: {
-                    "address1": string | null,"address2": string | null,"cancelled_at": string | null,"carrier": string | null,"city": string | null,"cod_cents": number | null,"created_at": string,"decision_reasons": NonNullable<Json>,"declared_value_cents": number | null,"delivered_at": string | null,"delivery_type": string | null,"handed_over_at": string | null,"id": string,"manual_overrides": NonNullable<Json>,"notes": string | null,"office_id": string | null,"printed_at": string | null,"recipient_email": string | null,"recipient_name": string | null,"recipient_phone_norm": string | null,"recipient_phone_raw": string | null,"returned_at": string | null,"status": string,"updated_at": string,"updated_by": string | null,"version": number,"waybill_created_at": string | null,"waybill_number": string | null,"waybill_pdf_path": string | null,"weight_g": number | null,"zip": string | null
+                    "address1": string | null,"address2": string | null,"cancelled_at": string | null,"carrier": string | null,"city": string | null,"cod_breakdown": NonNullable<Json>,"cod_cents": number | null,"combined_by": (string)[],"contents": NonNullable<Json>,"created_at": string,"decision_reasons": NonNullable<Json>,"declared_value_cents": number | null,"delivered_at": string | null,"delivery_type": string | null,"first_order_at": string | null,"handed_over_at": string | null,"id": string,"manual_overrides": NonNullable<Json>,"notes": string | null,"office_id": string | null,"printed_at": string | null,"recipient_email": string | null,"recipient_name": string | null,"recipient_phone_norm": string | null,"recipient_phone_raw": string | null,"reference": string | null,"returned_at": string | null,"source_batch_id": string | null,"status": string,"updated_at": string,"updated_by": string | null,"version": number,"waybill_created_at": string | null,"waybill_number": string | null,"waybill_pdf_path": string | null,"weight_g": number | null,"zip": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address1"?: string | null,"address2"?: string | null,"cancelled_at"?: string | null,"carrier"?: string | null,"city"?: string | null,"cod_cents"?: number | null,"created_at"?: string,"decision_reasons"?: NonNullable<Json>,"declared_value_cents"?: number | null,"delivered_at"?: string | null,"delivery_type"?: string | null,"handed_over_at"?: string | null,"id"?: string,"manual_overrides"?: NonNullable<Json>,"notes"?: string | null,"office_id"?: string | null,"printed_at"?: string | null,"recipient_email"?: string | null,"recipient_name"?: string | null,"recipient_phone_norm"?: string | null,"recipient_phone_raw"?: string | null,"returned_at"?: string | null,"status"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"waybill_created_at"?: string | null,"waybill_number"?: string | null,"waybill_pdf_path"?: string | null,"weight_g"?: number | null,"zip"?: string | null
+                    "address1"?: string | null,"address2"?: string | null,"cancelled_at"?: string | null,"carrier"?: string | null,"city"?: string | null,"cod_breakdown"?: NonNullable<Json>,"cod_cents"?: number | null,"combined_by"?: (string)[],"contents"?: NonNullable<Json>,"created_at"?: string,"decision_reasons"?: NonNullable<Json>,"declared_value_cents"?: number | null,"delivered_at"?: string | null,"delivery_type"?: string | null,"first_order_at"?: string | null,"handed_over_at"?: string | null,"id"?: string,"manual_overrides"?: NonNullable<Json>,"notes"?: string | null,"office_id"?: string | null,"printed_at"?: string | null,"recipient_email"?: string | null,"recipient_name"?: string | null,"recipient_phone_norm"?: string | null,"recipient_phone_raw"?: string | null,"reference"?: string | null,"returned_at"?: string | null,"source_batch_id"?: string | null,"status"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"waybill_created_at"?: string | null,"waybill_number"?: string | null,"waybill_pdf_path"?: string | null,"weight_g"?: number | null,"zip"?: string | null
                   }
                   Update: {
-                    "address1"?: string | null,"address2"?: string | null,"cancelled_at"?: string | null,"carrier"?: string | null,"city"?: string | null,"cod_cents"?: number | null,"created_at"?: string,"decision_reasons"?: NonNullable<Json>,"declared_value_cents"?: number | null,"delivered_at"?: string | null,"delivery_type"?: string | null,"handed_over_at"?: string | null,"id"?: string,"manual_overrides"?: NonNullable<Json>,"notes"?: string | null,"office_id"?: string | null,"printed_at"?: string | null,"recipient_email"?: string | null,"recipient_name"?: string | null,"recipient_phone_norm"?: string | null,"recipient_phone_raw"?: string | null,"returned_at"?: string | null,"status"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"waybill_created_at"?: string | null,"waybill_number"?: string | null,"waybill_pdf_path"?: string | null,"weight_g"?: number | null,"zip"?: string | null
+                    "address1"?: string | null,"address2"?: string | null,"cancelled_at"?: string | null,"carrier"?: string | null,"city"?: string | null,"cod_breakdown"?: NonNullable<Json>,"cod_cents"?: number | null,"combined_by"?: (string)[],"contents"?: NonNullable<Json>,"created_at"?: string,"decision_reasons"?: NonNullable<Json>,"declared_value_cents"?: number | null,"delivered_at"?: string | null,"delivery_type"?: string | null,"first_order_at"?: string | null,"handed_over_at"?: string | null,"id"?: string,"manual_overrides"?: NonNullable<Json>,"notes"?: string | null,"office_id"?: string | null,"printed_at"?: string | null,"recipient_email"?: string | null,"recipient_name"?: string | null,"recipient_phone_norm"?: string | null,"recipient_phone_raw"?: string | null,"reference"?: string | null,"returned_at"?: string | null,"source_batch_id"?: string | null,"status"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"waybill_created_at"?: string | null,"waybill_number"?: string | null,"waybill_pdf_path"?: string | null,"weight_g"?: number | null,"zip"?: string | null
                   }
                   Relationships: [
                     {
@@ -309,6 +327,12 @@ isOneToOne: false
       columns: ["office_id"]
 isOneToOne: false
       referencedRelation: "courier_offices"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shipments_source_batch_id_fkey"
+      columns: ["source_batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
       referencedColumns: ["id"]
     }
                   ]
@@ -329,6 +353,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stock_movements_shipment_id_fkey"
+      columns: ["shipment_id"]
+isOneToOne: false
+      referencedRelation: "shipment_overview"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "stock_movements_shipment_id_fkey"
@@ -369,7 +399,21 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "shipment_overview": {
+                  Row: {
+                    "address1": string | null,"address2": string | null,"city": string | null,"cod_breakdown": NonNullable<Json>,"cod_cents": number | null,"combined_by": (string)[],"contents": NonNullable<Json>,"created_at": string,"decision_reasons": NonNullable<Json>,"first_order_at": string | null,"flags_amber": number | null,"flags_info": number | null,"flags_red": number | null,"id": string,"manual_overrides": NonNullable<Json>,"order_count": number | null,"orders": Json | null,"recipient_email": string | null,"recipient_name": string | null,"recipient_phone_norm": string | null,"recipient_phone_raw": string | null,"reference": string | null,"source_batch_id": string | null,"status": string,"updated_at": string,"version": number,"zip": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "shipments_source_batch_id_fkey"
+      columns: ["source_batch_id"]
+isOneToOne: false
+      referencedRelation: "import_batches"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
           }
           Functions: {
             "archive_confirm":
@@ -383,6 +427,15 @@ isOneToOne: false
                            },
 "import_commit":
 { Args: { "p_actor": string,"p_batch_id": string,"p_payload": Json,"p_storage_path": string }; Returns: Json
+                           },
+"shipment_keep_apart":
+{ Args: { "p_shipment_a": string,"p_shipment_b": string }; Returns: undefined
+                           },
+"shipment_merge":
+{ Args: { "p_source": string,"p_source_version"?: number,"p_target": string,"p_target_version"?: number }; Returns: string
+                           },
+"shipment_split":
+{ Args: { "p_order_id": string,"p_shipment_version"?: number }; Returns: string
                            }
           }
           Enums: {

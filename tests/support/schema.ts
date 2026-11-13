@@ -28,6 +28,7 @@ export const OWNER_WRITE_TABLES = [
   'import_batches',
   'members',
   'settings',
+  'shipment_orders', // Phase 3: only the owner moves orders between shipments (P3-12)
   'tariffs',
 ] as const;
 

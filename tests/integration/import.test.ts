@@ -3,7 +3,7 @@
  * T2-03 same file twice, T2-04 overlapping exports, T2-05 changed order,
  * T2-06 cancelled order, T2-07 packer rejected, plus what is stored.
  */
-import { SHOPIFY_COLUMNS, type SampleOrder } from '@happyhome/core/import';
+import { phoneMatchKey, SHOPIFY_COLUMNS, type SampleOrder } from '@happyhome/core/import';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminClient, anonClient, signedInClient, type Client } from '../support/clients';
 import { cleanUpRun, csvOf, payloadOf, postImport, runOrders } from '../support/imports';
@@ -53,6 +53,17 @@ async function orderByName(name: string) {
   return data;
 }
 
+/** The shipment the import put the order in (Phase 3 builds one for every shippable order). */
+async function shipmentOf(orderId: string): Promise<string> {
+  const { data, error } = await adminClient()
+    .from('shipment_orders')
+    .select('shipment_id')
+    .eq('order_id', orderId)
+    .single();
+  if (error) throw error;
+  return data.shipment_id;
+}
+
 async function flagsOf(orderId: string) {
   const { data } = await adminClient().from('flags').select('*').eq('order_id', orderId);
   return data ?? [];
@@ -84,9 +95,9 @@ describe('importing a file (owner)', () => {
     const o = await orderByName(O.o2002.name);
     expect(o).toMatchObject({
       shopify_id: O.o2002.id,
-      phone_raw: '+359888000102',
-      phone_norm: '0888000102',
-      email_norm: 'maria.testova@example.com',
+      phone_raw: O.o2002.phone,
+      phone_norm: phoneMatchKey(O.o2002.phone),
+      email_norm: O.o2002.email.trim().toLowerCase(),
       total_cents: 4498,
       is_cod: true,
       shipping_zip: '4000',
@@ -186,7 +197,7 @@ describe('importing a file (owner)', () => {
       .single();
     expect(link!.outcome).toBe('updated');
     const diff = link!.diff as { fields: Record<string, { before: string; after: string }> };
-    expect(diff.fields['Shipping Phone']).toEqual({ before: '888000106', after: '0888123456' });
+    expect(diff.fields['Shipping Phone']).toEqual({ before: O.o2006.phone, after: '0888123456' });
     expect(Object.keys(diff.fields)).toContain('Notes');
 
     const { data: audit } = await owner
@@ -214,12 +225,10 @@ describe('importing a file (owner)', () => {
   it('T2-05: the change flag is red when the order already has a waybill', async () => {
     const admin = adminClient();
     const o = await orderByName(O.o2008.name);
-    const { data: shipment } = await admin
+    await admin
       .from('shipments')
-      .insert({ status: 'waybill_created', carrier: 'econt', waybill_number: `T${run}` })
-      .select('id')
-      .single();
-    await admin.from('shipment_orders').insert({ shipment_id: shipment!.id, order_id: o.id });
+      .update({ status: 'waybill_created', carrier: 'econt', waybill_number: `T${run}` })
+      .eq('id', await shipmentOf(o.id));
 
     await importOk('week-4.csv', [
       { ...O.o2008, a1: 'Офис Спиди – Варна Тест', city: 'Варна', zip: '9000' },
@@ -232,12 +241,8 @@ describe('importing a file (owner)', () => {
   it('T2-06: an order cancelled in a later batch gets a red flag and its shipment is cancelled', async () => {
     const admin = adminClient();
     const o = await orderByName(O.o2007.name);
-    const { data: shipment } = await admin
-      .from('shipments')
-      .insert({ status: 'ready' })
-      .select('id')
-      .single();
-    await admin.from('shipment_orders').insert({ shipment_id: shipment!.id, order_id: o.id });
+    // #2007 came in a later file than #2002 (same customer), so it has a shipment of its own.
+    const shipment = { id: await shipmentOf(o.id) };
 
     const cancelled = { ...O.o2007, cancelled: '2026-11-08 10:00:00 +0200' };
     const result = await importOk('week-5.csv', [cancelled]);
@@ -255,7 +260,7 @@ describe('importing a file (owner)', () => {
     const { data: s } = await admin
       .from('shipments')
       .select('status, cancelled_at')
-      .eq('id', shipment!.id)
+      .eq('id', shipment.id)
       .single();
     expect(s).toMatchObject({ status: 'cancelled' });
     expect(s!.cancelled_at).not.toBeNull();
@@ -264,18 +269,17 @@ describe('importing a file (owner)', () => {
   it('T2-06: a shipment already handed over keeps its status; the red flag says so', async () => {
     const admin = adminClient();
     const o = await orderByName(O.o2001.name);
-    const { data: shipment } = await admin
+    const shipment = { id: await shipmentOf(o.id) };
+    await admin
       .from('shipments')
-      .insert({ status: 'handed_over', carrier: 'econt', waybill_number: `H${run}` })
-      .select('id')
-      .single();
-    await admin.from('shipment_orders').insert({ shipment_id: shipment!.id, order_id: o.id });
+      .update({ status: 'handed_over', carrier: 'econt', waybill_number: `H${run}` })
+      .eq('id', shipment.id);
 
     await importOk('week-6.csv', [{ ...O.o2001, cancelled: '2026-11-09 10:00:00 +0200' }]);
     const { data: s } = await admin
       .from('shipments')
       .select('status')
-      .eq('id', shipment!.id)
+      .eq('id', shipment.id)
       .single();
     expect(s!.status).toBe('handed_over');
     const flag = (await flagsOf(o.id)).find((f) => f.code === 'ORDER_CANCELLED_AFTER_IMPORT');
