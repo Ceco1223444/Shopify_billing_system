@@ -3,6 +3,7 @@
  * and checks that the migrations produced the schema, grants and RLS the brief requires.
  */
 import { SETTINGS_DEFAULTS, SHIPMENT_STATUSES } from '@happyhome/core';
+import { POINT_TYPES } from '@happyhome/core/couriers';
 import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -107,6 +108,28 @@ describe('migrations', () => {
     );
     const inDb = [...(check?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]);
     expect(inDb).toEqual([...SHIPMENT_STATUSES]);
+  });
+
+  it('keeps the courier point type CHECK in sync with packages/core (Phase 4)', async () => {
+    const [check] = await rows<{ def: string }>(
+      `select pg_get_constraintdef(oid) as def from pg_constraint
+       where conrelid = 'public.courier_offices'::regclass and conname = 'courier_offices_type_check'`,
+    );
+    const inDb = [...(check?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]);
+    expect(inDb).toEqual([...POINT_TYPES]);
+  });
+
+  it('has the Phase 4 extensions and indexes (pg_trgm search, cron, http)', async () => {
+    const ext = await rows<{ extname: string }>(
+      `select extname from pg_extension where extname in ('pg_trgm', 'pg_cron', 'pg_net', 'postgis') order by extname`,
+    );
+    expect(ext.map((e) => e.extname)).toEqual(['pg_cron', 'pg_net', 'pg_trgm', 'postgis']);
+    const indexes = await rows<{ indexdef: string }>(
+      `select indexdef from pg_indexes where schemaname = 'public' and tablename = 'courier_offices'`,
+    );
+    expect(indexes.map((i) => i.indexdef).join('\n')).toMatch(
+      /USING gin \(search_latin (extensions\.)?gin_trgm_ops\)/,
+    );
   });
 
   it('seeds the settings exactly as SETTINGS_DEFAULTS', async () => {
@@ -246,6 +269,47 @@ describe('grants and row-level security', () => {
               has_function_privilege('service_role', 'public.import_commit(uuid, uuid, text, jsonb)', 'EXECUTE') as service`,
     );
     expect(f).toEqual({ authed: false, service: true });
+  });
+
+  it('Phase 4: sync / geocoder functions are for the service role only; queries for members', async () => {
+    const serviceOnly = [
+      'public.courier_sync_start(text, text, uuid)',
+      'public.courier_sync_claim(uuid, integer)',
+      'public.courier_sync_stage(uuid, jsonb)',
+      'public.courier_sync_apply(uuid, integer)',
+      'public.courier_sync_finish(uuid)',
+      'public.courier_sync_fail(uuid, text, text)',
+      'public.courier_sync_check_token(text)',
+      'public.courier_sync_set_functions_url(text)',
+      'public.courier_points_claim_geocode(integer)',
+      'public.geocoder_reserve(text, integer, integer)',
+      'public.geocode_cache_put(text, text, text, double precision, double precision, text, text, text, jsonb)',
+      'public.app_setting(text)',
+      'public.tariff_find(text, text, integer, date)',
+    ];
+    for (const fn of serviceOnly) {
+      const [r] = await rows<{ anon: boolean; authed: boolean; service: boolean }>(
+        `select has_function_privilege('anon', $1, 'EXECUTE') as anon,
+                has_function_privilege('authenticated', $1, 'EXECUTE') as authed,
+                has_function_privilege('service_role', $1, 'EXECUTE') as service`,
+        [fn],
+      );
+      expect(r, fn).toEqual({ anon: false, authed: false, service: true });
+    }
+    const forMembers = [
+      'public.nearest_points(double precision, double precision, text[], text[], double precision, integer)',
+      'public.points_in_city(text)',
+      'public.search_points(text, text[], text[], integer)',
+      'public.courier_points_stats()',
+    ];
+    for (const fn of forMembers) {
+      const [r] = await rows<{ anon: boolean; authed: boolean }>(
+        `select has_function_privilege('anon', $1, 'EXECUTE') as anon,
+                has_function_privilege('authenticated', $1, 'EXECUTE') as authed`,
+        [fn],
+      );
+      expect(r, fn).toEqual({ anon: false, authed: true });
+    }
   });
 
   it('keeps the helper functions away from anon', async () => {

@@ -178,8 +178,8 @@ describe('packer', () => {
     const { error: officeError } = await packer.from('courier_offices').insert({
       carrier: 'econt',
       external_id: uniq('X'),
-      kind: 'office',
-      name: 'Invented office',
+      type: 'office',
+      name_bg: 'Invented office',
       source: 'test',
     });
     expect(officeError?.code).toBe('42501');

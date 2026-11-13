@@ -2,6 +2,7 @@
 export const PUBLIC_TABLES = [
   'audit_log',
   'courier_offices',
+  'courier_sync_runs',
   'flags',
   'geocode_cache',
   'import_batch_orders',
@@ -36,7 +37,12 @@ export const OWNER_WRITE_TABLES = [
 export const OWNER_ONLY_TABLES = ['import_batch_orders', 'import_batches'] as const;
 
 /** Tables nobody signed in may write (audit trigger / Edge Functions only). */
-export const READ_ONLY_FOR_USERS = ['audit_log', 'courier_offices', 'geocode_cache'] as const;
+export const READ_ONLY_FOR_USERS = [
+  'audit_log',
+  'courier_offices',
+  'courier_sync_runs', // Phase 4: written by the courier-sync Edge Function only
+  'geocode_cache',
+] as const;
 
 /** Tables whose changes are broadcast over Realtime. */
 export const REALTIME_TABLES = ['flags', 'orders', 'products', 'shipments', 'sync_probe'] as const;

@@ -22,14 +22,28 @@ export type Database = {
                   ]
                 },"courier_offices": {
                   Row: {
-                    "address": string | null,"carrier": string,"city": string | null,"created_at": string,"external_id": string,"geo_confidence": number | null,"id": string,"is_active": boolean,"kind": string,"lat": number | null,"lng": number | null,"location": unknown,"name": string,"name_en": string | null,"phone": string | null,"raw": NonNullable<Json>,"source": string,"synced_at": string | null,"updated_at": string,"updated_by": string | null,"version": number,"working_hours": Json | null,"zip": string | null
+                    "active": boolean,"address_text": string | null,"carrier": string,"city": string | null,"city_latin": string | null,"code": string | null,"content_hash": string | null,"coord_confidence": number | null,"coord_source": string | null,"created_at": string,"deactivated_at": string | null,"external_id": string,"geocode_attempts": number,"geocode_status": string,"geocode_tried_at": string | null,"id": string,"last_run_id": string | null,"lat": number | null,"lng": number | null,"location": unknown,"name_bg": string,"name_en": string | null,"phone": string | null,"postcode": string | null,"raw": NonNullable<Json>,"search_latin": string | null,"source": string,"synced_at": string | null,"type": string,"updated_at": string,"updated_by": string | null,"version": number,"working_hours": Json | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"carrier": string,"city"?: string | null,"created_at"?: string,"external_id": string,"geo_confidence"?: number | null,"id"?: string,"is_active"?: boolean,"kind": string,"lat"?: number | null,"lng"?: number | null,"location"?: unknown,"name": string,"name_en"?: string | null,"phone"?: string | null,"raw"?: NonNullable<Json>,"source": string,"synced_at"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"working_hours"?: Json | null,"zip"?: string | null
+                    "active"?: boolean,"address_text"?: string | null,"carrier": string,"city"?: string | null,"city_latin"?: never,"code"?: string | null,"content_hash"?: string | null,"coord_confidence"?: number | null,"coord_source"?: string | null,"created_at"?: string,"deactivated_at"?: string | null,"external_id": string,"geocode_attempts"?: number,"geocode_status"?: string,"geocode_tried_at"?: string | null,"id"?: string,"last_run_id"?: string | null,"lat"?: number | null,"lng"?: number | null,"location"?: unknown,"name_bg": string,"name_en"?: string | null,"phone"?: string | null,"postcode"?: string | null,"raw"?: NonNullable<Json>,"search_latin"?: never,"source": string,"synced_at"?: string | null,"type": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"working_hours"?: Json | null
                   }
                   Update: {
-                    "address"?: string | null,"carrier"?: string,"city"?: string | null,"created_at"?: string,"external_id"?: string,"geo_confidence"?: number | null,"id"?: string,"is_active"?: boolean,"kind"?: string,"lat"?: number | null,"lng"?: number | null,"location"?: unknown,"name"?: string,"name_en"?: string | null,"phone"?: string | null,"raw"?: NonNullable<Json>,"source"?: string,"synced_at"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"working_hours"?: Json | null,"zip"?: string | null
+                    "active"?: boolean,"address_text"?: string | null,"carrier"?: string,"city"?: string | null,"city_latin"?: never,"code"?: string | null,"content_hash"?: string | null,"coord_confidence"?: number | null,"coord_source"?: string | null,"created_at"?: string,"deactivated_at"?: string | null,"external_id"?: string,"geocode_attempts"?: number,"geocode_status"?: string,"geocode_tried_at"?: string | null,"id"?: string,"last_run_id"?: string | null,"lat"?: number | null,"lng"?: number | null,"location"?: unknown,"name_bg"?: string,"name_en"?: string | null,"phone"?: string | null,"postcode"?: string | null,"raw"?: NonNullable<Json>,"search_latin"?: never,"source"?: string,"synced_at"?: string | null,"type"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"working_hours"?: Json | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"courier_sync_runs": {
+                  Row: {
+                    "attempts": number,"carrier": string,"created_at": string,"deactivated": number,"error_code": string | null,"error_message": string | null,"fetched": number | null,"finished_at": string | null,"id": string,"inserted": number,"invalid": number | null,"lease_until": string | null,"reactivated": number,"requested_by": string | null,"skipped": number | null,"source": string | null,"stage": string,"started_at": string,"status": string,"trigger": string,"unchanged": number,"updated": number,"updated_at": string,"updated_by": string | null,"version": number,"warnings": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"carrier": string,"created_at"?: string,"deactivated"?: number,"error_code"?: string | null,"error_message"?: string | null,"fetched"?: number | null,"finished_at"?: string | null,"id"?: string,"inserted"?: number,"invalid"?: number | null,"lease_until"?: string | null,"reactivated"?: number,"requested_by"?: string | null,"skipped"?: number | null,"source"?: string | null,"stage"?: string,"started_at"?: string,"status"?: string,"trigger": string,"unchanged"?: number,"updated"?: number,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"warnings"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "attempts"?: number,"carrier"?: string,"created_at"?: string,"deactivated"?: number,"error_code"?: string | null,"error_message"?: string | null,"fetched"?: number | null,"finished_at"?: string | null,"id"?: string,"inserted"?: number,"invalid"?: number | null,"lease_until"?: string | null,"reactivated"?: number,"requested_by"?: string | null,"skipped"?: number | null,"source"?: string | null,"stage"?: string,"started_at"?: string,"status"?: string,"trigger"?: string,"unchanged"?: number,"updated"?: number,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"warnings"?: NonNullable<Json>
                   }
                   Relationships: [
                     
@@ -80,14 +94,14 @@ isOneToOne: false
                   ]
                 },"geocode_cache": {
                   Row: {
-                    "confidence": number | null,"created_at": string,"display_name": string | null,"fetched_at": string,"id": string,"lat": number | null,"lng": number | null,"provider": string,"query_norm": string,"raw": NonNullable<Json>,"updated_at": string,"updated_by": string | null,"version": number
+                    "confidence": number | null,"created_at": string,"display_name": string | null,"fetched_at": string,"id": string,"kind": string,"lat": number | null,"lng": number | null,"precision": string | null,"provider": string,"query_norm": string,"raw": NonNullable<Json>,"updated_at": string,"updated_by": string | null,"variant": string | null,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "confidence"?: number | null,"created_at"?: string,"display_name"?: string | null,"fetched_at"?: string,"id"?: string,"lat"?: number | null,"lng"?: number | null,"provider": string,"query_norm": string,"raw"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "confidence"?: number | null,"created_at"?: string,"display_name"?: string | null,"fetched_at"?: string,"id"?: string,"kind"?: string,"lat"?: number | null,"lng"?: number | null,"precision"?: string | null,"provider": string,"query_norm": string,"raw"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"variant"?: string | null,"version"?: number
                   }
                   Update: {
-                    "confidence"?: number | null,"created_at"?: string,"display_name"?: string | null,"fetched_at"?: string,"id"?: string,"lat"?: number | null,"lng"?: number | null,"provider"?: string,"query_norm"?: string,"raw"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
+                    "confidence"?: number | null,"created_at"?: string,"display_name"?: string | null,"fetched_at"?: string,"id"?: string,"kind"?: string,"lat"?: number | null,"lng"?: number | null,"precision"?: string | null,"provider"?: string,"query_norm"?: string,"raw"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null,"variant"?: string | null,"version"?: number
                   }
                   Relationships: [
                     
@@ -416,7 +430,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "archive_confirm":
+            "app_setting":
+{ Args: { "p_key": string }; Returns: Json
+                           },
+"archive_confirm":
 { Args: { "p_batch_id": string,"p_computer": string,"p_method": string,"p_path": string,"p_sha256": string,"p_size_bytes": number }; Returns: undefined
                            },
 "archive_mark_deleted":
@@ -425,8 +442,239 @@ isOneToOne: false
 "archive_mark_due":
 { Args: { "p_all"?: boolean }; Returns: number
                            },
+"courier_point_geocoded":
+{ Args: { "p_id": string,"p_lat": number,"p_lng": number,"p_precision": string }; Returns: undefined
+                           },
+"courier_points_claim_geocode":
+{ Args: { "p_limit": number }; Returns: {
+              "active": boolean,
+"address_text": string | null,
+"carrier": string,
+"city": string | null,
+"city_latin": string | null,
+"code": string | null,
+"content_hash": string | null,
+"coord_confidence": number | null,
+"coord_source": string | null,
+"created_at": string,
+"deactivated_at": string | null,
+"external_id": string,
+"geocode_attempts": number,
+"geocode_status": string,
+"geocode_tried_at": string | null,
+"id": string,
+"last_run_id": string | null,
+"lat": number | null,
+"lng": number | null,
+"location": unknown,
+"name_bg": string,
+"name_en": string | null,
+"phone": string | null,
+"postcode": string | null,
+"raw": NonNullable<Json>,
+"search_latin": string | null,
+"source": string,
+"synced_at": string | null,
+"type": string,
+"updated_at": string,
+"updated_by": string | null,
+"version": number,
+"working_hours": Json | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "courier_offices"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"courier_points_stats":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "active": boolean,"carrier": string,"total": number,"type": string,"with_coords": number
+            }[]
+                           },
+"courier_sync_active_count":
+{ Args: { "p_carrier": string }; Returns: number
+                           },
+"courier_sync_apply":
+{ Args: { "p_limit": number,"p_run": string }; Returns: Json
+                           },
+"courier_sync_check_token":
+{ Args: { "p_token": string }; Returns: boolean
+                           },
+"courier_sync_claim":
+{ Args: { "p_run": string,"p_seconds": number }; Returns: {
+              "attempts": number,
+"carrier": string,
+"created_at": string,
+"deactivated": number,
+"error_code": string | null,
+"error_message": string | null,
+"fetched": number | null,
+"finished_at": string | null,
+"id": string,
+"inserted": number,
+"invalid": number | null,
+"lease_until": string | null,
+"reactivated": number,
+"requested_by": string | null,
+"skipped": number | null,
+"source": string | null,
+"stage": string,
+"started_at": string,
+"status": string,
+"trigger": string,
+"unchanged": number,
+"updated": number,
+"updated_at": string,
+"updated_by": string | null,
+"version": number,
+"warnings": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "courier_sync_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"courier_sync_fail":
+{ Args: { "p_code": string,"p_message": string,"p_run": string }; Returns: undefined
+                           },
+"courier_sync_finish":
+{ Args: { "p_run": string }; Returns: Json
+                           },
+"courier_sync_mark_staged":
+{ Args: { "p_info": Json,"p_run": string }; Returns: undefined
+                           },
+"courier_sync_release":
+{ Args: { "p_run": string }; Returns: undefined
+                           },
+"courier_sync_reset_stage":
+{ Args: { "p_run": string }; Returns: undefined
+                           },
+"courier_sync_resumable":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "attempts": number,
+"carrier": string,
+"created_at": string,
+"deactivated": number,
+"error_code": string | null,
+"error_message": string | null,
+"fetched": number | null,
+"finished_at": string | null,
+"id": string,
+"inserted": number,
+"invalid": number | null,
+"lease_until": string | null,
+"reactivated": number,
+"requested_by": string | null,
+"skipped": number | null,
+"source": string | null,
+"stage": string,
+"started_at": string,
+"status": string,
+"trigger": string,
+"unchanged": number,
+"updated": number,
+"updated_at": string,
+"updated_by": string | null,
+"version": number,
+"warnings": NonNullable<Json>
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "courier_sync_runs"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"courier_sync_set_functions_url":
+{ Args: { "p_url": string }; Returns: undefined
+                           },
+"courier_sync_stage":
+{ Args: { "p_rows": Json,"p_run": string }; Returns: number
+                           },
+"courier_sync_start":
+{ Args: { "p_actor": string,"p_carrier": string,"p_trigger": string }; Returns: {
+              "attempts": number,
+"carrier": string,
+"created_at": string,
+"deactivated": number,
+"error_code": string | null,
+"error_message": string | null,
+"fetched": number | null,
+"finished_at": string | null,
+"id": string,
+"inserted": number,
+"invalid": number | null,
+"lease_until": string | null,
+"reactivated": number,
+"requested_by": string | null,
+"skipped": number | null,
+"source": string | null,
+"stage": string,
+"started_at": string,
+"status": string,
+"trigger": string,
+"unchanged": number,
+"updated": number,
+"updated_at": string,
+"updated_by": string | null,
+"version": number,
+"warnings": NonNullable<Json>
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "courier_sync_runs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"geocode_cache_get":
+{ Args: { "p_key": string,"p_kind": string,"p_provider": string }; Returns: {
+              "confidence": number | null,
+"created_at": string,
+"display_name": string | null,
+"fetched_at": string,
+"id": string,
+"kind": string,
+"lat": number | null,
+"lng": number | null,
+"precision": string | null,
+"provider": string,
+"query_norm": string,
+"raw": NonNullable<Json>,
+"updated_at": string,
+"updated_by": string | null,
+"variant": string | null,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "geocode_cache"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"geocode_cache_put":
+{ Args: { "p_display_name": string,"p_key": string,"p_kind": string,"p_lat": number,"p_lng": number,"p_precision": string,"p_provider": string,"p_raw": Json,"p_variant": string }; Returns: undefined
+                           },
+"geocoder_reserve":
+{ Args: { "p_bucket": string,"p_interval_ms": number,"p_max_wait_ms": number }; Returns: number
+                           },
 "import_commit":
 { Args: { "p_actor": string,"p_batch_id": string,"p_payload": Json,"p_storage_path": string }; Returns: Json
+                           },
+"nearest_points":
+{ Args: { "p_carriers"?: (string)[],"p_lat": number,"p_limit"?: number,"p_lng": number,"p_max_km"?: number,"p_types"?: (string)[] }; Returns: {
+              "address_text": string,"carrier": string,"city": string,"code": string,"coord_confidence": number,"distance_km": number,"external_id": string,"id": string,"lat": number,"lng": number,"name_bg": string,"name_en": string,"postcode": string,"type": string,"working_hours": Json
+            }[]
+                           },
+"points_in_city":
+{ Args: { "p_query": string }; Returns: {
+              "address_text": string,"carrier": string,"city": string,"code": string,"coord_confidence": number,"coord_source": string,"external_id": string,"id": string,"lat": number,"lng": number,"name_bg": string,"name_en": string,"postcode": string,"type": string,"working_hours": Json
+            }[]
+                           },
+"search_points":
+{ Args: { "p_carriers"?: (string)[],"p_limit"?: number,"p_query": string,"p_types"?: (string)[] }; Returns: {
+              "address_text": string,"carrier": string,"city": string,"code": string,"external_id": string,"id": string,"lat": number,"lng": number,"name_bg": string,"name_en": string,"postcode": string,"score": number,"type": string
+            }[]
                            },
 "shipment_keep_apart":
 { Args: { "p_shipment_a": string,"p_shipment_b": string }; Returns: undefined
@@ -436,7 +684,33 @@ isOneToOne: false
                            },
 "shipment_split":
 { Args: { "p_order_id": string,"p_shipment_version"?: number }; Returns: string
-                           }
+                           },
+"tariff_find":
+{ Args: { "p_carrier": string,"p_delivery_type": string,"p_on": string,"p_weight_g": number }; Returns: {
+              "carrier": string,
+"created_at": string,
+"delivery_type": string,
+"extra_per_kg_cents": number | null,
+"id": string,
+"max_weight_g": number,
+"notes": string | null,
+"params": NonNullable<Json>,
+"price_cents": number,
+"service": string,
+"source": string,
+"updated_at": string,
+"updated_by": string | null,
+"valid_from": string,
+"valid_to": string | null,
+"variant": string,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tariffs"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
           }
           Enums: {
             [_ in never]: never
