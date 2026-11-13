@@ -19,7 +19,7 @@
     "comingSoon": "Тази страница още се изгражда.",
     "shipments": {
       "title": "Пратки",
-      "intro": "Тук ще виждате кои пратки да изпратите днес и на кого да се обадите."
+      "intro": "Пратките за изпращане: една пратка = един колет = един етикет. Поръчките на един клиент до един адрес са обединени."
     },
     "import": {
       "title": "Внасяне на поръчки",
@@ -255,6 +255,135 @@
       "banner_one": "{{count}} CSV файл чака архивиране",
       "banner_other": "{{count}} CSV файла чакат архивиране",
       "bannerLink": "Към архива"
+    }
+  },
+  "shipments": {
+    "filter": {
+      "label": "Покажи",
+      "check": "За проверка",
+      "ready": "Готови",
+      "open": "Неизпратени",
+      "all": "Всички"
+    },
+    "packerWaiting_one": "{{count}} пратка чака проверка от собственика.",
+    "packerWaiting_other": "{{count}} пратки чакат проверка от собственика.",
+    "empty": "Няма пратки тук.",
+    "loadFailed": "Пратките не можаха да се заредят. Опитайте пак.",
+    "col": {
+      "select": "Избери",
+      "orders": "Поръчки",
+      "recipient": "Получател",
+      "city": "Град",
+      "cod": "Наложен платеж",
+      "status": "Статус",
+      "flags": "За проверка"
+    },
+    "selectOne": "Избери {{reference}}",
+    "noCod": "Без НП",
+    "combined": "Обединени: {{reasons}}",
+    "combinedBy": {
+      "phone": "телефон",
+      "email": "имейл",
+      "manual": "ръчно"
+    },
+    "flagCount": {
+      "red_one": "{{count}} грешка",
+      "red_other": "{{count}} грешки",
+      "amber_one": "{{count}} за проверка",
+      "amber_other": "{{count}} за проверка",
+      "info_one": "{{count}} бележка",
+      "info_other": "{{count}} бележки",
+      "none": "Няма"
+    },
+    "status": {
+      "imported": "Внесена",
+      "needs_check": "За проверка",
+      "ready": "Готова",
+      "waiting_manual_waybill": "Чака товарителница (MySpeedy)",
+      "waybill_created": "Товарителница създадена",
+      "printed": "Отпечатана",
+      "printed_draft": "Отпечатан адресен етикет",
+      "handed_over": "Предадена",
+      "delivered": "Доставена",
+      "returned": "Върната",
+      "cancelled": "Отказана"
+    },
+    "orderCount_one": "{{count}} поръчка",
+    "orderCount_other": "{{count}} поръчки",
+    "merge": {
+      "selected_one": "Избрана: {{count}} пратка",
+      "selected_other": "Избрани: {{count}} пратки",
+      "button": "Обедини избраните",
+      "needTwo": "За да обедините, изберете точно две неизпратени пратки.",
+      "confirmTitle": "Да обединим ли тези пратки?",
+      "confirmText": "{{a}} и {{b}} ще станат една пратка (един колет, един етикет). Получателят е от най-ранната поръчка.",
+      "confirm": "Да, обедини",
+      "cancel": "Отказ",
+      "done": "Пратките са обединени: {{reference}}.",
+      "clear": "Изчисти избора"
+    },
+    "error": {
+      "owner_only": "Само собственикът може да прави това.",
+      "shipment_locked": "Пратката вече има товарителница и не може да се променя.",
+      "version_conflict": "Някой току-що промени пратката. Вижте новите данни и опитайте пак.",
+      "single_order": "Пратката има само една поръчка.",
+      "other": "Не стана. Опитайте пак."
+    },
+    "detail": {
+      "back": "← Всички пратки",
+      "notFound": "Няма такава пратка.",
+      "packerHidden": "Тази пратка чака проверка от собственика. Ще се появи в списъка, когато е готова.",
+      "recipient": "Получател",
+      "fromEarliest": "Данните са от най-ранната поръчка.",
+      "phone": "Телефон",
+      "phoneTyped": "Както е написан: {{phone}}",
+      "call": "Обади се",
+      "noPhone": "Няма телефон",
+      "email": "Имейл",
+      "address": "Адрес",
+      "cod": "Наложен платеж",
+      "codTotal": "Общо за събиране: {{amount}}",
+      "codNone": "Няма наложен платеж: всичко е платено предварително.",
+      "codOrder": "Поръчка",
+      "codPayment": "Плащане",
+      "codAmount": "Сума",
+      "codSource": "Откъде е сумата",
+      "paymentCod": "Наложен платеж",
+      "paymentPrepaid": "Платена предварително",
+      "source": {
+        "outstanding": "Outstanding Balance (остатък за плащане)",
+        "total": "Total (във файла няма Outstanding Balance)",
+        "missing": "Във файла няма сума",
+        "prepaid": "Нищо за събиране"
+      },
+      "contents": "Съдържание",
+      "contentsLine": "{{quantity}} × {{name}}",
+      "noContents": "Няма продукти за изпращане.",
+      "orders": "Поръчки в пратката",
+      "orderCreated": "Поръчана на {{date}}",
+      "split": "Отдели в отделна пратка",
+      "splitConfirm": "Да отделим ли {{order}} в отделна пратка?",
+      "splitYes": "Да, отдели",
+      "splitDone": "{{order}} е в нова пратка.",
+      "openNew": "Към новата пратка",
+      "flags": "За проверка",
+      "noFlags": "Няма нищо за проверка.",
+      "resolved_one": "{{count}} решен въпрос",
+      "resolved_other": "{{count}} решени въпроса",
+      "why": "Защо е така",
+      "related": "Свързани поръчки:",
+      "mergeWith": "Обедини с {{reference}}",
+      "keepApart": "Остави ги отделно",
+      "keptApart": "Решено: остават отделно.",
+      "mergeConfirm": "Да обединим ли тази пратка с {{reference}} в един колет?",
+      "openOther": "Към другата пратка",
+      "duplicateTitle": "Двете поръчки една до друга",
+      "dupCreated": "Поръчана",
+      "dupName": "Име",
+      "dupPhone": "Телефон",
+      "dupAddress": "Адрес",
+      "dupProducts": "Продукти",
+      "dupTotal": "Общо"
     }
   }
 }

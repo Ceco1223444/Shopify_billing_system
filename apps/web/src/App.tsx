@@ -9,6 +9,8 @@ import { LoginPage } from './pages/LoginPage';
 import { NoAccessPage } from './pages/NoAccessPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { ShipmentPage } from './shipments/ShipmentPage';
+import { ShipmentsPage } from './shipments/ShipmentsPage';
 import { PresenceProvider } from './realtime/PresenceProvider';
 
 // The Shopify converter and the Excel writer are big and only the owner's screens use them:
@@ -71,7 +73,8 @@ export function App() {
         <Route path="/login" element={<Navigate to={returnTo} replace />} />
         <Route element={<Layout />}>
           <Route index element={<Navigate to="/shipments" replace />} />
-          <Route path="shipments" element={<PlaceholderPage page="shipments" />} />
+          <Route path="shipments" element={<ShipmentsPage />} />
+          <Route path="shipments/:shipmentId" element={<ShipmentPage />} />
           <Route
             path="import"
             element={

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 
@@ -26,6 +27,8 @@ export interface FlagItem {
   message: string;
   reason: string | null;
   order: string | null;
+  /** Buttons, links or a comparison under the message (Phase 3). */
+  extra?: ReactNode;
 }
 
 export function FlagList({ flags }: { flags: FlagItem[] }) {
@@ -40,6 +43,7 @@ export function FlagList({ flags }: { flags: FlagItem[] }) {
           {f.reason && (
             <span className="muted flag-reason">{t('flags.why', { reason: f.reason })}</span>
           )}
+          {f.extra && <div className="flag-extra">{f.extra}</div>}
         </li>
       ))}
     </ul>

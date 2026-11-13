@@ -15,6 +15,7 @@ const ICONS = {
   /** same customer / many products (the legacy yellow rows) */
   multi: '◆',
   drag: '⠿',
+  phone: '📞',
 } as const;
 
 export type IconName = keyof typeof ICONS;

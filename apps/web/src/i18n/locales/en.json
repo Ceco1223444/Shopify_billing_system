@@ -19,7 +19,7 @@
     "comingSoon": "This page is still being built.",
     "shipments": {
       "title": "Shipments",
-      "intro": "Here you will see which parcels to send today and whom to call."
+      "intro": "Shipments to send: one shipment = one parcel = one label. Orders of one customer to one address are combined."
     },
     "import": {
       "title": "Import orders",
@@ -255,6 +255,135 @@
       "banner_one": "{{count}} CSV file is waiting for archive",
       "banner_other": "{{count}} CSV files are waiting for archive",
       "bannerLink": "Go to the archive"
+    }
+  },
+  "shipments": {
+    "filter": {
+      "label": "Show",
+      "check": "Needs check",
+      "ready": "Ready",
+      "open": "Not sent yet",
+      "all": "All"
+    },
+    "packerWaiting_one": "{{count}} shipment is waiting for the owner's check.",
+    "packerWaiting_other": "{{count}} shipments are waiting for the owner's check.",
+    "empty": "No shipments here.",
+    "loadFailed": "The shipments could not be loaded. Try again.",
+    "col": {
+      "select": "Select",
+      "orders": "Orders",
+      "recipient": "Recipient",
+      "city": "City",
+      "cod": "Cash on delivery",
+      "status": "Status",
+      "flags": "To check"
+    },
+    "selectOne": "Select {{reference}}",
+    "noCod": "No COD",
+    "combined": "Combined: {{reasons}}",
+    "combinedBy": {
+      "phone": "phone",
+      "email": "email",
+      "manual": "by hand"
+    },
+    "flagCount": {
+      "red_one": "{{count}} error",
+      "red_other": "{{count}} errors",
+      "amber_one": "{{count}} to check",
+      "amber_other": "{{count}} to check",
+      "info_one": "{{count}} note",
+      "info_other": "{{count}} notes",
+      "none": "None"
+    },
+    "status": {
+      "imported": "Imported",
+      "needs_check": "Needs check",
+      "ready": "Ready",
+      "waiting_manual_waybill": "Waiting for waybill (MySpeedy)",
+      "waybill_created": "Waybill created",
+      "printed": "Printed",
+      "printed_draft": "Address label printed",
+      "handed_over": "Handed over",
+      "delivered": "Delivered",
+      "returned": "Returned",
+      "cancelled": "Cancelled"
+    },
+    "orderCount_one": "{{count}} order",
+    "orderCount_other": "{{count}} orders",
+    "merge": {
+      "selected_one": "Selected: {{count}} shipment",
+      "selected_other": "Selected: {{count}} shipments",
+      "button": "Merge selected",
+      "needTwo": "To merge, select exactly two shipments that are not sent yet.",
+      "confirmTitle": "Merge these shipments?",
+      "confirmText": "{{a}} and {{b}} become one shipment (one parcel, one label). The recipient comes from the earliest order.",
+      "confirm": "Yes, merge",
+      "cancel": "Cancel",
+      "done": "The shipments are merged: {{reference}}.",
+      "clear": "Clear selection"
+    },
+    "error": {
+      "owner_only": "Only the owner can do this.",
+      "shipment_locked": "The shipment already has a waybill and cannot be changed.",
+      "version_conflict": "Someone just changed the shipment. Look at the new data and try again.",
+      "single_order": "The shipment has only one order.",
+      "other": "That did not work. Try again."
+    },
+    "detail": {
+      "back": "← All shipments",
+      "notFound": "No such shipment.",
+      "packerHidden": "This shipment is waiting for the owner's check. It appears in the list when it is ready.",
+      "recipient": "Recipient",
+      "fromEarliest": "The details come from the earliest order.",
+      "phone": "Phone",
+      "phoneTyped": "As typed: {{phone}}",
+      "call": "Call",
+      "noPhone": "No phone",
+      "email": "Email",
+      "address": "Address",
+      "cod": "Cash on delivery",
+      "codTotal": "Total to collect: {{amount}}",
+      "codNone": "No cash on delivery: everything was paid in advance.",
+      "codOrder": "Order",
+      "codPayment": "Payment",
+      "codAmount": "Amount",
+      "codSource": "Where the amount comes from",
+      "paymentCod": "Cash on delivery",
+      "paymentPrepaid": "Paid in advance",
+      "source": {
+        "outstanding": "Outstanding Balance",
+        "total": "Total (the file has no Outstanding Balance)",
+        "missing": "The file has no amount",
+        "prepaid": "Nothing to collect"
+      },
+      "contents": "Contents",
+      "contentsLine": "{{quantity}} × {{name}}",
+      "noContents": "No products to ship.",
+      "orders": "Orders in this shipment",
+      "orderCreated": "Ordered on {{date}}",
+      "split": "Move to a separate shipment",
+      "splitConfirm": "Move {{order}} to a separate shipment?",
+      "splitYes": "Yes, move it",
+      "splitDone": "{{order}} is in a new shipment.",
+      "openNew": "Open the new shipment",
+      "flags": "To check",
+      "noFlags": "Nothing to check.",
+      "resolved_one": "{{count}} resolved",
+      "resolved_other": "{{count}} resolved",
+      "why": "Why it is like this",
+      "related": "Related orders:",
+      "mergeWith": "Merge with {{reference}}",
+      "keepApart": "Keep them apart",
+      "keptApart": "Decided: they stay apart.",
+      "mergeConfirm": "Merge this shipment with {{reference}} into one parcel?",
+      "openOther": "Open the other shipment",
+      "duplicateTitle": "The two orders side by side",
+      "dupCreated": "Ordered",
+      "dupName": "Name",
+      "dupPhone": "Phone",
+      "dupAddress": "Address",
+      "dupProducts": "Products",
+      "dupTotal": "Total"
     }
   }
 }
