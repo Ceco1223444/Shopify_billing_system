@@ -1,0 +1,395 @@
+{
+  "offices": [
+    {
+      "id": 970,
+      "code": "4044",
+      "isMPS": false,
+      "isAPS": false,
+      "name": "Пловдив",
+      "nameEn": "Plovdiv",
+      "phones": [
+        "+359 32 673 388"
+      ],
+      "emails": [
+        "plovdiv_kuklensko@econt.com"
+      ],
+      "address": {
+        "id": null,
+        "city": {
+          "id": 33,
+          "country": {
+            "id": 1033,
+            "code2": "BG",
+            "code3": "BGR",
+            "name": "България",
+            "nameEn": "Bulgaria",
+            "isEU": true
+          },
+          "postCode": "4000",
+          "name": "Пловдив",
+          "nameEn": "Plovdiv",
+          "regionName": null,
+          "regionNameEn": null,
+          "phoneCode": null,
+          "location": null,
+          "expressCityDeliveries": null,
+          "monday": null,
+          "tuesday": null,
+          "wednesday": null,
+          "thursday": null,
+          "friday": null,
+          "saturday": null,
+          "sunday": null,
+          "serviceDays": null,
+          "zoneId": null,
+          "zoneName": null,
+          "zoneNameEn": null,
+          "servingOffices": []
+        },
+        "fullAddress": " Пловдив Район Южен ул. Кукленско Шосе №11",
+        "fullAddressEn": " Plovdiv Raion Ujen ul. Kuklensko Shose №11",
+        "quarter": "Район Южен",
+        "street": "ул. Кукленско Шосе",
+        "num": "11",
+        "other": "",
+        "location": {
+          "latitude": 42.12212767223579,
+          "longitude": 24.75953680477856,
+          "confidence": 3
+        },
+        "zip": null,
+        "hezid": null
+      },
+      "info": "ТП;Джи ти Логистикс ООД\nРаботи от 05.12.2014\nЗаповед 634 / 02.12.2014",
+      "currency": "EUR",
+      "language": null,
+      "normalBusinessHoursFrom": 1794553200000,
+      "normalBusinessHoursTo": 1794591000000,
+      "halfDayBusinessHoursFrom": 1794553200000,
+      "halfDayBusinessHoursTo": 1794574800000,
+      "shipmentTypes": [
+        "post",
+        "courier",
+        "cargo",
+        "pallet"
+      ],
+      "partnerCode": "",
+      "hubCode": "4000",
+      "hubName": "Пловдив НЛЦ населено място",
+      "hubNameEn": "Plovdiv NLC naseleno miasto",
+      "isDrive": false
+    },
+    {
+      "id": 38370,
+      "code": "4068",
+      "isMPS": false,
+      "isAPS": true,
+      "name": "Пловдив 24/7 Еконтомат - Тракия",
+      "nameEn": "Plovdiv 24/7 Econtomat - Trakiya",
+      "phones": [
+        "+359 87 530 66 75"
+      ],
+      "emails": [
+        "plovdiv_kuklensko@econt.com"
+      ],
+      "address": {
+        "id": null,
+        "city": {
+          "id": 33,
+          "country": {
+            "id": 1033,
+            "code2": "BG",
+            "code3": "BGR",
+            "name": "България",
+            "nameEn": "Bulgaria",
+            "isEU": true
+          },
+          "postCode": "4000",
+          "name": "Пловдив",
+          "nameEn": "Plovdiv",
+          "regionName": null,
+          "regionNameEn": null,
+          "phoneCode": null,
+          "location": null,
+          "expressCityDeliveries": null,
+          "monday": null,
+          "tuesday": null,
+          "wednesday": null,
+          "thursday": null,
+          "friday": null,
+          "saturday": null,
+          "sunday": null,
+          "serviceDays": null,
+          "zoneId": null,
+          "zoneName": null,
+          "zoneNameEn": null,
+          "servingOffices": []
+        },
+        "fullAddress": " Пловдив ж.к. Тракия бул. Съединение №43",
+        "fullAddressEn": " Plovdiv zh.k. Trakia bul. Saedinenie №43",
+        "quarter": "ж.к. Тракия",
+        "street": "бул. Съединение",
+        "num": "43",
+        "other": "",
+        "location": {
+          "latitude": 42.13232,
+          "longitude": 24.79506,
+          "confidence": 3
+        },
+        "zip": null,
+        "hezid": null
+      },
+      "info": "",
+      "currency": "EUR",
+      "language": null,
+      "normalBusinessHoursFrom": 1794520800000,
+      "normalBusinessHoursTo": 1794607140000,
+      "halfDayBusinessHoursFrom": 1794520800000,
+      "halfDayBusinessHoursTo": 1794607140000,
+      "shipmentTypes": [
+        "post",
+        "courier"
+      ],
+      "partnerCode": "",
+      "hubCode": "40005",
+      "hubName": "Пловдив НЛЦ Мобилни офиси",
+      "hubNameEn": "Plovdiv NLC Mobilni ofisi",
+      "isDrive": false
+    },
+    {
+      "id": 100001255,
+      "code": "2951@2932",
+      "isMPS": true,
+      "isAPS": false,
+      "name": "Мобилен офис (Абланица Мобилна пощенска станция - с. Абланица, ул. Елин Пелин 30)",
+      "nameEn": "Mobile office (Ablanitsa Мobile post station - s. Ablanitsa, ul. Elin Pelin 30)",
+      "phones": [
+        "+359 87 992 19 44"
+      ],
+      "emails": [
+        "satovcha@econt.com"
+      ],
+      "address": {
+        "id": null,
+        "city": {
+          "id": 1255,
+          "country": {
+            "id": 1033,
+            "code2": "BG",
+            "code3": "BGR",
+            "name": "България",
+            "nameEn": "Bulgaria",
+            "isEU": true
+          },
+          "postCode": "2932",
+          "name": "Абланица",
+          "nameEn": "Ablanitsa",
+          "regionName": null,
+          "regionNameEn": null,
+          "phoneCode": null,
+          "location": null,
+          "expressCityDeliveries": null,
+          "monday": null,
+          "tuesday": null,
+          "wednesday": null,
+          "thursday": null,
+          "friday": null,
+          "saturday": null,
+          "sunday": null,
+          "serviceDays": null,
+          "zoneId": null,
+          "zoneName": null,
+          "zoneNameEn": null,
+          "servingOffices": []
+        },
+        "fullAddress": "Мобилна пощенска станция - с. Абланица, ул. Елин Пелин 30",
+        "fullAddressEn": "Мobile post station - s. Ablanitsa, ul. Elin Pelin 30",
+        "quarter": null,
+        "street": null,
+        "num": null,
+        "other": "",
+        "location": {
+          "latitude": 41.536769,
+          "longitude": 23.935151,
+          "confidence": 3
+        },
+        "zip": null,
+        "hezid": null
+      },
+      "info": "",
+      "currency": "EUR",
+      "language": null,
+      "normalBusinessHoursFrom": 1794567600000,
+      "normalBusinessHoursTo": 1794576600000,
+      "halfDayBusinessHoursFrom": 1794567600000,
+      "halfDayBusinessHoursTo": 1794571200000,
+      "shipmentTypes": [
+        "post",
+        "courier",
+        "cargo",
+        "pallet"
+      ],
+      "partnerCode": "",
+      "hubCode": "27006",
+      "hubName": "Благоевград НЛЦ",
+      "hubNameEn": "Blagoewgrad NLC",
+      "isDrive": false
+    },
+    {
+      "id": 48485,
+      "code": "10016",
+      "isMPS": false,
+      "isAPS": false,
+      "name": "Еконт Точка София Дружба - Книжна борса",
+      "nameEn": "Ekont Tochka Sofia Drujba - Knijna borsa",
+      "phones": [
+        "+35982527309"
+      ],
+      "emails": [
+        "sofia_knijna_borsa@econt.com"
+      ],
+      "address": {
+        "id": null,
+        "city": {
+          "id": 41,
+          "country": {
+            "id": 1033,
+            "code2": "BG",
+            "code3": "BGR",
+            "name": "България",
+            "nameEn": "Bulgaria",
+            "isEU": true
+          },
+          "postCode": "1000",
+          "name": "София",
+          "nameEn": "Sofia",
+          "regionName": null,
+          "regionNameEn": null,
+          "phoneCode": null,
+          "location": null,
+          "expressCityDeliveries": null,
+          "monday": null,
+          "tuesday": null,
+          "wednesday": null,
+          "thursday": null,
+          "friday": null,
+          "saturday": null,
+          "sunday": null,
+          "serviceDays": null,
+          "zoneId": null,
+          "zoneName": null,
+          "zoneNameEn": null,
+          "servingOffices": []
+        },
+        "fullAddress": " София жк Дружба-1 ул. Поручик Христо Топракчиев №11 книжна борса Искър",
+        "fullAddressEn": " Sofia zhk Druzhba-1 ul. Poruchik Hristo Toprakchiev №11",
+        "quarter": "жк Дружба-1",
+        "street": "ул. Поручик Христо Топракчиев",
+        "num": "11",
+        "other": "книжна борса Искър",
+        "location": {
+          "latitude": 42.665619158712275,
+          "longitude": 23.413045653425584,
+          "confidence": 3
+        },
+        "zip": null,
+        "hezid": null
+      },
+      "info": "",
+      "currency": "EUR",
+      "language": null,
+      "normalBusinessHoursFrom": 1794556800000,
+      "normalBusinessHoursTo": 1794585600000,
+      "halfDayBusinessHoursFrom": 1794520800000,
+      "halfDayBusinessHoursTo": 1794520800000,
+      "shipmentTypes": [
+        "courier",
+        "pallet"
+      ],
+      "partnerCode": "",
+      "hubCode": "1100",
+      "hubName": "София НЛЦ Искър",
+      "hubNameEn": "Sofia NLC Iskar",
+      "isDrive": false
+    },
+    {
+      "id": 1000,
+      "code": "7029",
+      "isMPS": false,
+      "isAPS": false,
+      "name": "Русе",
+      "nameEn": "Ruse",
+      "phones": [
+        "+359 82 529 905"
+      ],
+      "emails": [
+        "rousse@econt.com"
+      ],
+      "address": {
+        "id": null,
+        "city": {
+          "id": 35,
+          "country": {
+            "id": 1033,
+            "code2": "BG",
+            "code3": "BGR",
+            "name": "България",
+            "nameEn": "Bulgaria",
+            "isEU": true
+          },
+          "postCode": "7000",
+          "name": "Русе",
+          "nameEn": "Ruse",
+          "regionName": null,
+          "regionNameEn": null,
+          "phoneCode": null,
+          "location": null,
+          "expressCityDeliveries": null,
+          "monday": null,
+          "tuesday": null,
+          "wednesday": null,
+          "thursday": null,
+          "friday": null,
+          "saturday": null,
+          "sunday": null,
+          "serviceDays": null,
+          "zoneId": null,
+          "zoneName": null,
+          "zoneNameEn": null,
+          "servingOffices": []
+        },
+        "fullAddress": " Русе кв. Пристанище Изток бул. Тутракан №44Б",
+        "fullAddressEn": " Ruse kv. Pristanishte Iztok bul. Tutrakan №44Б",
+        "quarter": "кв. Пристанище Изток",
+        "street": "бул. Тутракан",
+        "num": "44Б",
+        "other": "",
+        "location": {
+          "latitude": 43.87185253507648,
+          "longitude": 26.009383107969274,
+          "confidence": 3
+        },
+        "zip": null,
+        "hezid": null
+      },
+      "info": "ТП;АЛЕКСА 2017 ООД\nРаботи от 03.01.2015 г.\nЗаповед № 688 / 29.12.2014 г.",
+      "currency": "EUR",
+      "language": null,
+      "normalBusinessHoursFrom": 1794553200000,
+      "normalBusinessHoursTo": 1794589200000,
+      "halfDayBusinessHoursFrom": 1794553200000,
+      "halfDayBusinessHoursTo": 1794574800000,
+      "shipmentTypes": [
+        "post",
+        "courier",
+        "cargo",
+        "pallet"
+      ],
+      "partnerCode": "",
+      "hubCode": "70001",
+      "hubName": "Русе НЛЦ",
+      "hubNameEn": "Ruse NLC",
+      "isDrive": false
+    }
+  ]
+}

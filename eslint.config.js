@@ -15,6 +15,7 @@ export default defineConfig([
     'docs/',
     'supabase/.temp/',
     'packages/core/src/database.types.ts',
+    'packages/core/src/couriers/econt-openapi.ts',
     'tests/test-results/',
     'tests/playwright-report/',
   ]),

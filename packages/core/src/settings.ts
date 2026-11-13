@@ -1,5 +1,8 @@
 import type { CourierMode, SupportedCarrier } from './domain';
+import type { GeocoderSettings } from './geo/nominatim.ts';
 import { DEFAULT_VISIBLE_COLUMNS } from './import/columns';
+
+export type { GeocoderSettings };
 
 /**
  * Default values seeded into the `settings` table (key -> jsonb value) by
@@ -24,6 +27,8 @@ export interface AppSettings {
   courier_modes: Record<SupportedCarrier, CourierMode>;
   econt_env: 'demo' | 'production';
   sender_offices: Partial<Record<SupportedCarrier, string>>;
+  /** Phase 4: the free geocoder. Changeable without a new app version (Nominatim usage policy). */
+  geocoder: GeocoderSettings;
 }
 
 export type SettingKey = keyof AppSettings;
@@ -44,4 +49,10 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   courier_modes: { econt: 'api', speedy: 'manual' },
   econt_env: 'demo',
   sender_offices: {},
+  geocoder: {
+    provider: 'nominatim',
+    url: 'https://nominatim.openstreetmap.org',
+    enabled: true,
+    email: null,
+  },
 };

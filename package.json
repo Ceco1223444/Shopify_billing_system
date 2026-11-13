@@ -13,7 +13,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @happyhome/core --filter @happyhome/web test",
+    "test": "pnpm --filter @happyhome/core --filter @happyhome/web --filter @happyhome/tests test",
     "test:integration": "pnpm --filter @happyhome/tests test:integration",
     "test:e2e": "pnpm --filter @happyhome/tests test:e2e",
     "db:start": "supabase start",
@@ -21,7 +21,8 @@
     "db:reset": "supabase db reset",
     "db:types": "node scripts/gen-db-types.mjs",
     "env:local": "node scripts/write-local-env.mjs",
-    "member:add": "node scripts/add-member.mjs"
+    "member:add": "node scripts/add-member.mjs",
+    "econt:types": "node scripts/gen-econt-types.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -31,6 +32,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.7",
     "globals": "17.14.0",
+    "openapi-typescript": "7.13.0",
     "prettier": "3.10.1",
     "supabase": "3.1.0",
     "typescript": "6.0.3",

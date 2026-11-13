@@ -15,6 +15,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    // Courier / geocoding code in packages/core is also imported by the Edge Functions
+    // (Deno), which need explicit ".ts" extensions on relative imports.
+    "allowImportingTsExtensions": true
   }
 }

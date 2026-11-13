@@ -8,3 +8,5 @@ packages/core/src/database.types.ts
 **/coverage/
 tests/test-results/
 tests/playwright-report/
+packages/core/src/couriers/econt-openapi.ts
+packages/core/test/fixtures/
