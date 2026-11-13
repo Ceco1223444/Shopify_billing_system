@@ -1,13 +1,14 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 13 Nov 2026, end of **Phase 2 — Import Shopify CSV batches**.
+Last updated: 13 Nov 2026, end of **Phase 3 — Build shipments** (branch `phase-3-shipments`).
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
-| 3–13 | Not started |
+| 3 Build shipments | Built on branch `phase-3-shipments`. Local checks green: lint, typecheck, 71 core + 23 web unit tests, 114 integration tests, 16 e2e tests. Merge to `main` + tag `phase-3` once CI is green; then the hosted migration (step 19). |
+| 4–13 | Not started |
 
 ## Setup (15 steps)
 
@@ -39,6 +40,11 @@ Phase 2 on the hosted project (after the phase is merged; same terminal as step 
 18. Your check (prompt pack): import the same real export twice → the second one is refused. Import an overlapping export → only the new orders count as new. Then open the batch, press **Изтегли Excel**, and compare it with the legacy tool's file.
 
 Locally, `pnpm db:start` already serves the Edge Function (the local stack includes the edge runtime).
+
+Phase 3 on the hosted project (after the phase is merged):
+
+19. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote` (adds `20261114120000_shipments`). The migration also builds shipments for the orders imported before it, batch by batch. No Edge Function change (it passes the new `shipments` summary through).
+20. Your check (prompt pack): a CSV with two orders from the same phone number to the same address → one shipment. The same phone to a different address → two shipments + a call flag.
 
 ## What Phase 1 built
 
@@ -91,13 +97,50 @@ Locally, `pnpm db:start` already serves the Edge Function (the local stack inclu
 | T2-12 write fails | `apps/web/src/archive/archiver.test.ts` (plus checksum, read-back and record failures) |
 | ZIP fallback | `apps/web/src/archive/archiver.test.ts`, `tests/e2e/import.spec.ts` |
 
+## What Phase 3 built
+
+- **Where the rules run:** in the database, at the end of `import_commit`, in the same transaction as the import (`private.build_shipments`, migration `20261114120000_shipments`). An order is never left half-shipped, and the rules see the same data the import just wrote. Display helpers are in `packages/core/src/shipments.ts`.
+- **Same customer** = the same `phone_norm` (legacy `phoneMatchKey` of Shipping Phone) **or** the same `email_norm` (trimmed, lower case). Never the name.
+- **Same destination** = the office text + city when Address1 or Address2 names a courier office / locker (офис, еконт, спиди, автомат, пакетомат, office, econt, speedy, locker, box now), otherwise Address1 + Address2 + City + Zip. Lower case, punctuation and spaces ignored. An order without any address is never combined.
+- **Rules:**
+  - P3-01: an order is in one shipment only (unique index).
+  - P3-02: same customer + same destination in one batch → one shipment.
+  - P3-03: same customer, different destinations in one batch → separate shipments + amber "Един клиент, различни адреси — обадете се" on each order, linked to the others.
+  - P3-04: same customer + destination as an unsent shipment from another import → separate + amber "Същият клиент има неизпратена пратка от друго внасяне (#X) — да ги обединим?" on both shipments, with **Обедини** / **Остави ги отделно** for the owner.
+  - P3-05: same name only → grey "Същото име като поръчка #X — вероятно различни хора" on both orders.
+  - P3-06: the customer + destination already has a shipment with a waybill → separate + flag "Вече има създадена пратка за този клиент (#X)". The old shipment is not touched.
+  - P3-07: cancelled, fulfilled and nothing-to-ship orders get no shipment and a grey flag saying why.
+  - P3-08 / P3-09: same customer within `settings.duplicate_window_hours` (48 h, by Created at), also across imports → identical products (SKU or name + quantity, any line order) → red flag on both orders with the two orders side by side; overlapping products → amber.
+  - P3-14: status `needs_check` with any open red / amber flag on the shipment or its orders, else `ready`.
+- **Combined values:** recipient (name, phone, email, address) from the **earliest** order. Fields a person set by hand (`manual_overrides`) are kept. Different names / phones / emails between the combined orders → a grey flag listing them. COD = sum over the COD orders of Outstanding Balance (fallback Total); prepaid orders add 0. `cod_breakdown` stores the amount and its source per order. `contents` lists the products to ship; `reference` = "#2002 + #2007". Weight stays empty (Phase 7).
+- **Cancelled in a later import (T3-10):** if every order of the shipment is cancelled, the shipment is cancelled (Phase 2 rule). If other orders still travel and there is no waybill, the cancelled order is taken out and the values are recomputed. With a waybill: a red flag on the shipment, nothing changed automatically.
+- **Manual controls (owner only, P3-10 … P3-13):** RPCs `shipment_split`, `shipment_merge`, `shipment_keep_apart`. Each checks the role, writes an explicit `audit_log` row (`manual_split` / `manual_merge`) and accepts the version the owner confirmed (409 if someone changed it meanwhile). RLS: only the owner may create shipments or insert / update / delete `shipment_orders`. A re-import never moves an order that is already in a shipment, and an answered merge suggestion is never asked again.
+- **Every automatic decision has its reason** in `shipments.decision_reasons` (code + bg + en), shown as "Защо е така".
+- **Web:**
+  - **Пратки** lists shipments (not orders): order numbers, recipient, city, COD, status, flag counts and the "Обединени: телефон / имейл / ръчно" chip. Filters: За проверка / Готови / Неизпратени / Всички. Live updates.
+  - The owner ticks two shipments → **Обедини избраните**, with a confirmation step.
+  - The shipment page shows the recipient (+359 `tel:` link and the number as typed), COD per order with its source, the contents, the flags (merge / keep apart, links to related orders, possible duplicates side by side), **Отдели в отделна пратка** per order (with confirmation), and why it was combined.
+  - Packers see only shipments that do not need checking ("N пратки чакат проверка от собственика") and no split / merge controls.
+- **Backfill:** the migration builds shipments for the orders imported before it, batch by batch in import order: the same result as if Phase 3 had been there from the start.
+
+### Phase 3 tests
+
+| ID | Where |
+|---|---|
+| T3-01 … T3-16 | `tests/integration/shipments.test.ts` (table-driven; customers unique per run) |
+| COD sum / breakdown, recipient differences, P3-14, merge suggestion answered | same file |
+| Phase 2 tests with the new shipments (T2-05, T2-06) | `tests/integration/import.test.ts` |
+| RLS: `shipment_orders` owner-only writes | `tests/integration/schema.test.ts` via `OWNER_WRITE_TABLES` |
+| Screens: owner list + chip + split + merge; packer view | `tests/e2e/shipments.spec.ts` |
+| Helpers (open statuses, packer visibility, `tel:` links, list order) | `packages/core/src/shipments.test.ts` |
+
 ## Security model (hosted settings: Data API on, auto-expose OFF, auto-RLS ON)
 
 | Role | Gets |
 |---|---|
 | `anon` (signed out) | No GRANT on any table: every request returns *permission denied*. Cannot join private channels or read files. |
 | `authenticated`, not a member | Grants exist, but RLS hides every row. Sees the "Нямате достъп" screen. |
-| packer | Reads everything except import batches and raw CSV files; inserts/updates shop data; **cannot** import, write settings, tariffs, members; cannot delete anything. |
+| packer | Reads everything except import batches and raw CSV files; inserts/updates shop data; **cannot** import, create shipments, move orders between shipments (split / merge), write settings, tariffs, members; cannot delete anything. |
 | owner | Everything a packer can do, plus import, raw CSV files, settings, tariffs, members and deletes. A raw CSV can be deleted only after its archive copy is confirmed. |
 | `service_role` (Edge Functions / scripts) | All tables; bypasses RLS. `audit_log` is read-only even here. |
 
@@ -147,6 +190,19 @@ Phase 2:
 - The archive folder is per computer (per browser). The computer name in the archive history is set in Settings; the default is the system and browser, e.g. "Windows · Chrome".
 - "Изтегли Excel" keeps the legacy sheet names (Shipping / Warnings / Notes) and headings (`order_id` for Name), because the legacy delivery board reads them.
 
+Phase 3:
+
+- **Two differences from the brief again (the brief says a packer "can do everything else"). I followed the Phase 3 spec; please confirm:**
+  1. Split and merge are owner-only (P3-12), enforced by RLS and the RPCs.
+  2. Packers do not see shipments in `needs_check` (P3-15 and the acceptance list). This is a **screen filter**, not RLS. The brief says the parents call the customers the app tells them to call; Phase 8 (their workspace) can then show them the "call" items without a database change. Tell me if packers should never be able to read them at all.
+- "Different batches" (P3-04) means the existing shipment was created by an earlier import (or by a manual split). Orders already in a shipment are never re-grouped.
+- P3-06 looks only at shipments with a waybill that are not handed over yet (`waybill_created`, `printed`, `printed_draft`). A customer whose earlier parcel was already delivered gets no flag (the 48-hour duplicate check still applies).
+- Name-only matches (P3-05) are checked within the batch and against unsent shipments, not against every order ever, to avoid noise for common names.
+- The same customer with a different address in a **later** import gets no flag (the spec only covers the same batch); the 48-hour duplicate check still applies. Tell me if you want a flag there too.
+- "Overlapping products" (P3-09) = at least one product (SKU, else name) in common, ignoring quantities.
+- Exclusion flags (cancelled / fulfilled / nothing to ship) are grey: nothing to do. Recipient differences in a combined shipment are grey too, with the values listed.
+- A merge deletes the second shipment row (its flags move to the merged one; `audit_log` keeps both). A split makes a new shipment. Both mark `manual_overrides.orders`.
+
 ## Known gaps
 
 - Hosted project: migrations are pushed. Still to do by the owner: sign-ups off, Realtime public access off, `.env.admin`, creating the members, `.env.hosted.local` (steps 11–14).
@@ -158,6 +214,8 @@ Phase 2:
 - **Desktop app archive path**: browsers never reveal a folder's full path. The desktop app (Phase 12) must ask for the folder once with its own dialog and provide `window.happyhomeDesktop.archiveFolder`. The web side already uses it when it is there.
 - **No real exports tested yet.** The prompt pack asks for 2–3 anonymized real Shopify exports; only the legacy samples and synthetic files were used. If a real export has a column or format the legacy tool does not handle, the Phase 2 spec says to stop and ask.
 - CI's database job now also starts the edge runtime, which the import tests need.
+- Shipments are built in SQL (plpgsql), not in `packages/core`, so the import stays one transaction. The rules are covered by the integration tests rather than core unit tests.
+- Office detection for "same destination" is a keyword heuristic until Phase 5 (real office / locker detection).
 - Packers cannot delete rows, including `shipment_orders`. If Phase 3 lets packers split a combined shipment, that needs an RPC or a "detached" flag instead of a delete.
 - The repository is **public**. Never commit real CSV exports, customer data, `.env*` files or keys.
 
