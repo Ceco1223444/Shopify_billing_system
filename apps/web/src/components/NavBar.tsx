@@ -7,6 +7,8 @@ const NAV_ITEMS = [
   { to: '/shipments', key: 'shipments', icon: '📦' },
   // Importing Shopify files is the owner's job (Phase 2): packers don't see it.
   { to: '/import', key: 'import', icon: '📥', ownerOnly: true },
+  // Courier offices and lockers, their sync and map (Phase 4): the owner's tool.
+  { to: '/offices', key: 'offices', icon: '📍', ownerOnly: true },
   { to: '/products', key: 'products', icon: '🛏️' },
   { to: '/stock', key: 'stock', icon: '🗃️' },
   { to: '/reports', key: 'reports', icon: '📊' },

@@ -13,6 +13,7 @@
     "stock": "Stock",
     "reports": "Reports",
     "settings": "Settings",
+    "offices": "Offices",
     "connectionCheck": "Connection check"
   },
   "pages": {
@@ -40,6 +41,10 @@
     "settings": {
       "title": "Settings",
       "intro": "The owner changes the shop's settings here."
+    },
+    "offices": {
+      "title": "Offices and lockers",
+      "intro": "All Econt and Speedy offices and lockers. The list updates itself: Econt every night, Speedy once a week."
     },
     "notFound": {
       "title": "Page not found",
@@ -384,6 +389,87 @@
       "dupAddress": "Address",
       "dupProducts": "Products",
       "dupTotal": "Total"
+    }
+  },
+  "offices": {
+    "ownerOnly": "Only the owner sees and updates the office list.",
+    "loadFailed": "The office list could not be loaded. Please try again shortly.",
+    "carrier": {
+      "econt": "Econt",
+      "speedy": "Speedy"
+    },
+    "type": {
+      "office": "Office",
+      "locker": "Locker",
+      "mobile": "Mobile office"
+    },
+    "count": {
+      "office_one": "{{count}} office",
+      "office_other": "{{count}} offices",
+      "locker_one": "{{count}} locker",
+      "locker_other": "{{count}} lockers",
+      "mobile_one": "{{count}} mobile office",
+      "mobile_other": "{{count}} mobile offices"
+    },
+    "source": {
+      "econt": "Source: Econt's official list.",
+      "speedy": "Source: the public list on Speedy's website (manual mode)."
+    },
+    "withCoords": "On the map: {{count}} of {{total}}",
+    "inactive_one": "{{count}} closed office is kept in the history (not deleted).",
+    "inactive_other": "{{count}} closed offices are kept in the history (not deleted).",
+    "lastOk": "Last update: {{date}}",
+    "neverOk": "Not updated yet.",
+    "status": {
+      "ok": "Up to date",
+      "running": "Updating…",
+      "failed": "Did not update"
+    },
+    "lastRun": "Last update: {{inserted}} new, {{updated}} changed, {{deactivated}} closed.",
+    "failedAt": "Failed attempt: {{date}}",
+    "keptOld": "The previous list is still in use.",
+    "errors": {
+      "fetch_failed": "The courier's website did not answer.",
+      "parse_failed": "The courier's list looks different and could not be read.",
+      "too_few_points": "The courier's list was much shorter than usual, so nothing was changed.",
+      "mode_not_available": "This way of connecting to the courier is not ready yet.",
+      "too_many_attempts": "The update stopped after many failed attempts.",
+      "error": "Unexpected error."
+    },
+    "refresh": "Update offices",
+    "refreshStarted": "The update has started. It takes about a minute; this page refreshes itself.",
+    "refreshFailed": "The update could not start. Please try again shortly.",
+    "banner": {
+      "econt": "The Econt office list did not update",
+      "speedy": "The Speedy office list did not update",
+      "link": "Details"
+    },
+    "map": {
+      "title": "Map of one town",
+      "intro": "Choose a town to see its offices and lockers on the map.",
+      "cityLabel": "Town or postcode",
+      "show": "Show",
+      "label": "Map of the offices and lockers in {{city}}",
+      "found_one": "{{count}} point in {{city}}",
+      "found_other": "{{count}} points in {{city}}",
+      "none": "No offices or lockers for “{{city}}”.",
+      "noCoords_one": "{{count}} point has no coordinates and is not on the map.",
+      "noCoords_other": "{{count}} points have no coordinates and are not on the map.",
+      "legend": "E = Econt, S = Speedy. Square = office, circle = locker, diamond = mobile office.",
+      "loadFailed": "The offices for this town could not be loaded."
+    },
+    "search": {
+      "title": "Find an office",
+      "label": "Name or address (Cyrillic or Latin)",
+      "submit": "Search",
+      "none": "Nothing found for “{{query}}”.",
+      "showCity": "Show on the map"
+    },
+    "table": {
+      "carrier": "Courier",
+      "type": "Type",
+      "name": "Name",
+      "address": "Address"
     }
   }
 }

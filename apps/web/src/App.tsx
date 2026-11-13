@@ -19,6 +19,10 @@ const ImportPage = lazy(() =>
   import('./import/ImportPage').then((m) => ({ default: m.ImportPage })),
 );
 const BatchPage = lazy(() => import('./import/BatchPage').then((m) => ({ default: m.BatchPage })));
+// The offices page brings the map library (Leaflet): only the owner opens it.
+const OfficesPage = lazy(() =>
+  import('./offices/OfficesPage').then((m) => ({ default: m.OfficesPage })),
+);
 const SettingsPage = lazy(() =>
   import('./settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
@@ -88,6 +92,14 @@ export function App() {
             element={
               <Suspense fallback={loading}>
                 <BatchPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="offices"
+            element={
+              <Suspense fallback={loading}>
+                <OfficesPage />
               </Suspense>
             }
           />

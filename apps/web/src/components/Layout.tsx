@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 import { ArchiveBanner } from '../archive/ArchiveBanner';
 import { ArchiveProvider } from '../archive/ArchiveProvider';
 import { useMember } from '../auth/AuthProvider';
+import { CourierSyncBanner } from '../offices/CourierSyncBanner';
 import { AccountSwitchedNotice } from './AccountSwitchedNotice';
 import { NavBar } from './NavBar';
 import { TopBar } from './TopBar';
@@ -19,6 +20,7 @@ export function Layout() {
       <NavBar />
       <AccountSwitchedNotice />
       <ArchiveBanner />
+      {member.role === 'owner' && <CourierSyncBanner />}
       <main id="main" className="main">
         <Outlet />
       </main>
