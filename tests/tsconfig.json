@@ -4,5 +4,13 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"]
   },
-  "include": ["support", "integration", "e2e", "vitest.config.ts", "playwright.config.ts"]
+  "include": [
+    "support",
+    "integration",
+    "unit",
+    "e2e",
+    "vitest.config.ts",
+    "vitest.unit.config.ts",
+    "playwright.config.ts"
+  ]
 }

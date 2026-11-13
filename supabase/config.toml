@@ -433,3 +433,13 @@ enabled = true
 [functions.import-batch]
 enabled = true
 verify_jwt = false
+
+# Phase 4: both functions check the caller themselves (owner / member / pg_cron token / service
+# key), so the gateway's legacy JWT check is off.
+[functions.courier-sync]
+enabled = true
+verify_jwt = false
+
+[functions.geocode]
+enabled = true
+verify_jwt = false
