@@ -9,7 +9,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
 | 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). **Still to do by the owner:** the hosted migration (step 19). |
 | 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Econt secrets set by the owner (step 23, 14 Nov 2026). **Still to do by the owner:** hosted steps 21, 22, 24, 25. |
-| 5 Delivery point detection | Done (branch `phase-5-delivery-detection`). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. **Still to do by the owner:** hosted steps 26–29. |
+| 5 Delivery point detection | Done. Merged to `main` and tagged `phase-5`, CI green ([run 43547677232](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43547677232)). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. **Still to do by the owner:** hosted steps 26–29. |
 | 6–13 | Not started |
 
 ## Setup (15 steps)
