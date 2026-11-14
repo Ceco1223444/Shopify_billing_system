@@ -1,6 +1,6 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 14 Nov 2026, after **Phase 4 — Courier points database and geocoding** (owner's answers recorded).
+Last updated: 14 Nov 2026, after **Phase 5 — Delivery point detection and certainty**.
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
@@ -9,7 +9,8 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
 | 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). **Still to do by the owner:** the hosted migration (step 19). |
 | 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Econt secrets set by the owner (step 23, 14 Nov 2026). **Still to do by the owner:** hosted steps 21, 22, 24, 25. |
-| 5–13 | Not started |
+| 5 Delivery point detection | Done (branch `phase-5-delivery-detection`). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. **Still to do by the owner:** hosted steps 26–29. |
+| 6–13 | Not started |
 
 ## Setup (15 steps)
 
@@ -54,6 +55,13 @@ Phase 4 on the hosted project (after the phase is merged; same terminal as step 
 23. **Econt production login: done by the owner on 14 Nov 2026.** (Where: **Edge Functions → Secrets** in the Supabase dashboard, `ECONT_USERNAME` and `ECONT_PASSWORD`.) The office list does not need them (it is public). Price calculations use them once `settings.econt_env` is switched from `demo` to `production`; the first production call is also the first check that they are right.
 24. Log in as the owner → **Офиси** → **Обнови офисите**. Wait about a minute. This first press also tells the scheduled job where the function lives. After that, Econt updates every night at 03:00 and Speedy once a week (also at night), with no further action.
 25. Your check: about 640 Econt and 1 390 Speedy points, all "На картата". Choose Пловдив and check that the points are where you expect them.
+
+Phase 5 on the hosted project (after the phase is merged; same terminal as step 9):
+
+26. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote`. It adds `20261116120000_delivery_detection` (and the Phase 3 / 4 migrations too, if steps 19 / 21 are not done yet). It schedules the 2-minute "delivery-detect-tick" job, and it sets `office_range_km` to 1 and `home_carrier_tie_break` to Econt **only if you never changed them**. Every shipment that is not sent yet is marked "to detect".
+27. `pnpm exec supabase functions deploy detect-delivery --yes`.
+28. Log in as the owner and open **Пратки**. If step 24 (Обнови офисите) is done, the 2-minute job already knows where the functions are. If not, import a file, or open **Настройки → Доставка** and press **Запази** once: either one tells the job. The chips then appear within a few minutes. The first time, each new address takes about 3 seconds (Nominatim's pace), so a hundred shipments take about 5 minutes.
+29. Your check (prompt pack): every shipment in Пратки shows the courier, the type, the office and a chip **Сигурно / Обадете се / Грешка** with the reason. Open an "Обадете се" one: the phone link, the script and the buttons are there. Log in as Мама: the "Обадете се" shipments are in her list too.
 
 ## What Phase 1 built
 
@@ -212,6 +220,78 @@ Measured on 18 **public** courier office addresses whose true coordinates the co
 
 All final hits are in the right town. About 2.4 requests per new address (cached afterwards). Two fixes made the difference: many OpenStreetMap streets in Bulgaria are named without "ул.", so "Хаджи Димитър 42, Плевен" is found but "ул. Хаджи Димитър 42, Плевен" is not; and a check that the hit is in the named town (without it, "ул. София 7, Айдемир" landed in Sofia, 349 km away). **Good enough for choosing the nearest office (Phase 5), with one caveat:** for "town only" results the nearest office is a guess, so Phase 5 should treat precision `city` as "ask" rather than "decide". Real customer addresses (ж.к. + бл. without a street) may score lower than office addresses. Phase 5 will show the real rate on the imported orders.
 
+## What Phase 5 built
+
+- **Detection** (`packages/core/src/detect/`, pure TypeScript, run by the Edge Function and the tests):
+  - Input (owner's decision): Address1, Address2, Company and the Notes of every order in the shipment. **Shipping Method is never read** (T5-08 tests it on 40 cases), and Note Attributes are not used.
+  - `normalize.ts`: lower case, no punctuation, and a Latin and a Cyrillic copy of the text with the words aligned, so "Ekont", "spidi", "Еконт" and "СПИДИ" are the same word. Words are matched whole ("apt" never matches inside "аптека"). One typo is allowed for words of 5+ letters with the same first letter.
+  - `dictionary.ts`: Appendix B (Econt, Speedy, other couriers, office, locker, home words) plus the owner's words from Settings. The owner's words are added and never replace the built-in ones (P5-05).
+  - `match.ts` (P5-06 … P5-09): the office name, without the town, courier and street words, is compared to every active point of the town with pg_trgm-style trigram similarity. A match needs ≥ 0.75 and a lead of ≥ 0.10 over the next point. Office vs locker comes from the matched point (P5-09). An office ID or code counts only for a point in the order's town.
+  - `decide.ts`: rules A–F exactly as P5-10 … P5-17. Every decision has at least one reason in Bulgarian and English, and optional hints ("Адресът изглежда като домашен", "Адресът е намерен само до града: разстоянието е приблизително").
+  - `call.ts`: the Bulgarian call script (1–2 questions, P5-20) and the plain Google Maps / Google search **links** for rule F (P5-15). The links are plain URLs a person opens; the app never calls Google. The guard test allows exactly these two link forms in that one file, and checks that the file never fetches anything.
+- **Database** (migration `20261116120000_delivery_detection`):
+  - Shipments get the decision: certainty, rule, reasons, hints, suggestion, alternatives, where the address was found, and a "to detect" mark. Triggers set the mark whenever the address, the notes or the company change.
+  - The flag "Обадете се: не е ясно къде да изпратим пратката" (amber) or "Грешка в доставката — обадете се" (red) makes the shipment `needs_check` (Phase 3 rule). A certain decision resolves it.
+  - `shipment_calls`: every call outcome, who and when. RPC `delivery_call_outcome` (owner and packers): confirm the suggestion, another office, home address, no answer (only counted), refused (a reason is required; the shipment is cancelled and the reason kept).
+  - **P5-19:** every outcome except "no answer" stores `manual_overrides.delivery`. The detection never changes a shipment chosen by hand. Only the owner can hand it back ("Нека приложението реши отново").
+  - `shipment_update_address` (owner and packers): the corrected address is kept over a re-import (`manual_overrides.address`) and detected again.
+  - `delivery_redetect_open` (owner): after a settings change, every open shipment not chosen by hand is detected again.
+  - pg_cron "delivery-detect-tick" every 2 minutes: calls the function when something waits.
+  - The view `shipment_overview` has the decision, the office name / address / type, the other open flags and the call count.
+- **Edge Function `detect-delivery`**: `pending` (after an import, and from the 2-minute job) or `ids` (after an address correction). It uses the Phase 4 geocoder at Nominatim's pace. A busy geocoder leaves the shipment for the next run. Nothing about the customer is logged. **On the local stack the geocoder is off** (no test address ever goes to Nominatim) unless `GEOCODER_LOCAL=on`.
+- **Web:**
+  - **Пратки:** a "Доставка" column with the courier badge (Еконт blue, Спиди red, always with the word), the type (🏢 Офис, 📦 Автомат, 🚐 Подвижен офис, 🏠 До адрес), the office name (or "Предложение: …" with the distance) and the chip **Сигурно** (green ✅) / **Обадете се** (amber 📞) / **Грешка** (red ⛔) / **Проверява се…** (grey) with the main reason. New filter "Обадете се".
+  - **Shipment page, "Доставка" card:** the reasons and hints, the suggestion with its distance, close alternatives (each with **Избери**), the Google links for an error, and the shipping method "for information only". For an uncertain or error shipment: the `tel:+359…` link, the call script, the buttons **Потвърди предложението / Друг офис / Личен адрес / Не вдига — опитай пак / Отказва поръчката**, and every unanswered call with its time and who called. **Друг офис** opens a picker (the town's points, or search by name or address). **Поправи адреса** edits the address; the detection runs 600 ms after saving.
+  - **Settings → Доставка (owner):** the office range in km, the courier for home deliveries, and extra words per category.
+  - After an import the web starts the detection at once (the 2-minute job is the safety net).
+
+### Phase 5 tests
+
+| ID | Where |
+|---|---|
+| T5-01 ≥ 60 cases (Appendix B + real offices) | `packages/core/test/detect-cases.test.ts` (81 cases) |
+| T5-02 Latin text and typos | same file, "T5-02 / T5-03" block; `packages/core/src/detect/detect-units.test.ts` |
+| T5-03 "Офис Еконт – Пловдив Тест", "еконтомат", "автомат спиди" → point and type | same file, "T5-03" block |
+| T5-04 "до адрес" + full street → certain, address | `detect-cases.test.ts` (rule B cases) |
+| T5-05 street address + office words → uncertain (D) | `detect-cases.test.ts` (rule D cases) |
+| T5-06 BOX NOW; empty address → error | `detect-cases.test.ts` (rule F cases), `tests/integration/delivery.test.ts` |
+| T5-07 0.8 km vs 1.5 km with range 1 km | `detect-cases.test.ts` |
+| T5-08 Shipping Method has no effect | `detect-cases.test.ts` (40 cases with and without "Free shipping") |
+| T5-09 every decision has a reason | `packages/core/test/detect-properties.test.ts` (2 000 random inputs), `tests/integration/delivery.test.ts` |
+| T5-10 certain → the point is resolved | `detect-properties.test.ts` |
+| T5-11 edit after a manual choice → kept | `tests/integration/delivery.test.ts` |
+| Flags, status, calls by a packer, refusal, outsiders, owner reset, settings re-detect, stale decisions, the function and the 2-minute job | `tests/integration/delivery.test.ts` (19 tests) |
+| Chips, packer call, picker, refusal, address correction, settings | `tests/e2e/delivery.spec.ts` |
+| Packer visibility (`waitsForCall`, `packerCanSee`) | `packages/core/src/shipments.test.ts` |
+| Legacy samples | `packages/core/test/detect-legacy.test.ts` (table below) |
+
+### Legacy sample shipments (acceptance)
+
+The legacy samples (#2001–#2011, invented people and addresses), grouped as the import groups them, with the real office list of the tests. The sample streets do not exist, so the first table has no map answer. The second table shows what the hosted geocoder will do for them: it falls back to the town.
+
+| Shipment | Address | Rule | Chip | Courier / type | Reason |
+|---|---|---|---|---|---|
+| #2001 | ул. Примерна 12, вх. Б ет. 3 ап. 12, София | F | Грешка | — | Адресът не е намерен на картата |
+| #2002 + #2007 | Офис Еконт – Пловдив Тест, Пловдив | C | Обадете се | Еконт, офис | Посочен е Еконт, но офисът не е ясен (there is no Econt office "Пловдив Тест") |
+| #2003 | ж.к. Тестов, бл. 5, ет. 2, Варна | F | Грешка | — | Адресът не е намерен на картата |
+| #2004 | бул. Демо 7, Бургас | F | Грешка | — | Адресът не е намерен на картата |
+| #2005 | Via di Prova 3, Roma (IT) | F | Грешка | — | Not in Bulgaria |
+| #2006 + #2011 | ул. Опитна 21, Русе | F | Грешка | — | Адресът не е намерен на картата |
+| #2008 | Офис Спиди – София Тест, София | C | Обадете се | Спиди, офис | Посочен е Спиди, но офисът не е ясен |
+| #2009 | ул. Пробна 4, Стара Загора | F | Грешка | — | Адресът не е намерен на картата (no phone either: the call box says to e-mail) |
+| #2010 | ул. Макетна 9, Плевен | — | — | — | Cancelled in Shopify: not detected |
+
+With only the town found on the map (the hosted geocoder's fallback):
+
+| Shipment | Rule | Chip | Result |
+|---|---|---|---|
+| #2001 (София) | E | Обадете се | No office within 1 km of the town centre in the test list → "предложен е личен адрес", hints "only to the town" and "looks like a home address" |
+| #2006 + #2011 (Русе) | E | Обадете се | Nearest: Спиди "РУСЕ - ТЕХНОПОЛИС", hints "only to the town" and "looks like a home address" |
+
+When the T5-03 test office "Пловдив Тест" exists, #2002 + #2007 is rule A, **Сигурно**, Econt office.
+
+No sample contradicts the rules, and the thresholds 0.75 / 0.10 gave no clearly wrong match on the test data. Real exports will show more.
+
 ## Security model (hosted settings: Data API on, auto-expose OFF, auto-RLS ON)
 
 | Role | Gets |
@@ -295,6 +375,20 @@ Phase 4:
 - **Postcode search** (`points_in_city('4000')`) returns every point of the town that has that postcode. Speedy's list has no postcode for offices in the big towns, so Speedy points are found through their town.
 - **Map tiles** come from OpenStreetMap's own tile server, which allows light use with attribution. One owner looking at one town at a time is light use; nothing is downloaded in advance.
 
+Phase 5:
+
+- **Call tools for the owner AND the packers.** P5-22 says owner-only; the brief says the parents call the customers. **The owner chose "me and my parents" on 14 Nov 2026.** Packers now see a `needs_check` shipment when its only open problem is the delivery (no other red / amber flag), with the call tools and the address correction. Resetting a manual choice and the settings stay owner-only.
+- **Rule E is always "Обадете се"**, as P5-14 says, also when no office is within range (then home delivery is suggested). So a plain home address with no words like "до адрес" always needs a call. Customers who write "до адрес" / "личен адрес" + street and number are **Сигурно** (rule B). Tell me if a plain street address with no office within range should be "Сигурно" instead.
+- **P5-16 tie-break:** the nearest first (distances rounded to 10 m); on an exact tie the cheaper one (Phase 7, not yet), then `home_carrier_tie_break`. Points of either courier within 200 m of the nearest are shown as alternatives.
+- **Rule B's courier** is `home_carrier_tie_break` (Econt) until Phase 7 compares prices.
+- **Kind differs:** "автомат Капана", where Капана is an office → rule C "Обадете се" with the office suggested (P5-09: the type comes from the point, so the app asks instead of guessing).
+- **Office codes** ("офис 4064") count only for a point in the order's town, so a stray number is not taken as an office elsewhere.
+- **Home words without a street** ("до адрес", no street or number) → rule B but "Обадете се" ("адресът е непълен"): P5-11 needs a street + number for certain.
+- **Office word without a courier** ("до автомат Кауфланд Тракия") with one clear match → "Обадете се" with that point suggested (P5-17: never certain without the courier).
+- **P5-18 "re-run after an edit, debounced 600 ms":** the detection runs 600 ms after the corrected address is **saved**, not while typing, so half-typed addresses never go to Nominatim. Choosing an office by hand needs no detection (it is a manual choice).
+- **"Отказва поръчката"** cancels the shipment in the app and keeps the reason. The Shopify order is not changed: cancel it in Shopify as usual.
+- **Settings change:** saving Settings → Доставка detects every open shipment again, except those chosen by hand.
+
 ## Known gaps
 
 - Hosted project: migrations are pushed. Still to do by the owner: sign-ups off, Realtime public access off, `.env.admin`, creating the members, `.env.hosted.local` (steps 11–14).
@@ -307,12 +401,14 @@ Phase 4:
 - **No real exports tested yet.** The prompt pack asks for 2–3 anonymized real Shopify exports; only the legacy samples and synthetic files were used. If a real export has a column or format the legacy tool does not handle, the Phase 2 spec says to stop and ask.
 - CI's database job now also starts the edge runtime, which the import tests need.
 - Shipments are built in SQL (plpgsql), not in `packages/core`, so the import stays one transaction. The rules are covered by the integration tests rather than core unit tests.
-- Office detection for "same destination" is a keyword heuristic until Phase 5 (real office / locker detection).
+- "Same destination" in the Phase 3 grouping is still the keyword heuristic. Phase 5 decides each shipment's destination after the grouping.
 - Packers cannot delete rows, including `shipment_orders`. If Phase 3 lets packers split a combined shipment, that needs an RPC or a "detached" flag instead of a delete.
 - The repository is **public**. Never commit real CSV exports, customer data, `.env*` files or keys.
 - **Hosted Phase 4 is not set up yet** (steps 21–25). Until the first **Обнови офисите** on the hosted project, the scheduled job knows no function URL and does nothing ("not configured").
 - **Econt production login** is set (14 Nov 2026) but not tested yet: nothing in Phase 4 calls Econt production with a login. It is checked the first time `settings.econt_env` = `production`.
-- **Geocoding customer addresses is ready but not used yet**: Phase 5 calls the `geocode` function for imported orders. The hit rate above is from courier office addresses; customer addresses may be worse.
+- **Customer address hit rate not measured yet:** Phase 5 geocodes customer addresses, but only invented samples were used. After the first real import on the hosted project, the share of "Грешка: Адресът не е намерен на картата" shows the real rate.
+- **Phase 5 is not on the hosted project yet** (steps 26–29).
+- The Speedy widget (P4-12) is not used; "Друг офис" uses our own list (`points_in_city`, `search_points`).
 - The map in the admin page puts up to a few hundred markers on one town (Sofia: about 400). They overlap at town zoom; zoom in or use the list below the map.
 
 ## API / tool differences found

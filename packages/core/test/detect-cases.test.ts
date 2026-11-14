@@ -590,6 +590,71 @@ describe('T5-02 / T5-03: Latin text, typos and the Appendix B examples', () => {
   });
 });
 
+describe('T5-03: the Appendix B examples resolve to the right point and type', () => {
+  // The legacy samples name an invented office "Пловдив Тест"; here it exists (a test office).
+  const plovdivTest = {
+    ...pointById('econt', '4064'),
+    id: 'econt-test',
+    external_id: '9999',
+    name_bg: 'Пловдив Тест',
+    address_text: 'Пловдив ул. Тестова 1',
+  };
+  const withTestOffice = () => {
+    const deps = fakeDeps();
+    const inCity = deps.pointsInCity;
+    return {
+      ...deps,
+      pointsInCity: async (city: string | null, zip: string | null) => [
+        ...(await inCity(city, zip)),
+        ...(city === 'Пловдив' ? [plovdivTest] : []),
+      ],
+    };
+  };
+  const decide = async (address1: string) => {
+    const out = await detectDelivery({ address1, city: 'Пловдив', zip: '4000' }, withTestOffice());
+    if (out.kind !== 'decided') throw new Error('busy');
+    return out.decision;
+  };
+
+  it('"Офис Еконт – Пловдив Тест" → that Econt office, type office, certain', async () => {
+    const d = await decide('Офис Еконт – Пловдив Тест');
+    expect([d.rule, d.certainty, d.carrier, d.deliveryType, d.point?.id]).toEqual([
+      'A',
+      'certain',
+      'econt',
+      'office',
+      'econt-test',
+    ]);
+  });
+
+  it('"еконтомат Тракия" → the Econt locker of that name, type locker', async () => {
+    const d = await decide('еконтомат Тракия');
+    expect([d.rule, d.certainty, d.carrier, d.deliveryType, d.point?.id]).toEqual([
+      'A',
+      'certain',
+      'econt',
+      'locker',
+      pointById('econt', '4068').id,
+    ]);
+  });
+
+  it('"автомат спиди Кауфланд Тракия" → the Speedy locker, type locker', async () => {
+    const d = await decide('автомат спиди Кауфланд Тракия');
+    expect([d.rule, d.certainty, d.carrier, d.deliveryType, d.point?.id]).toEqual([
+      'A',
+      'certain',
+      'speedy',
+      'locker',
+      pointById('speedy', '9145').id,
+    ]);
+  });
+
+  it('"еконтомат" alone: Econt, a locker, but which one is not clear → uncertain', async () => {
+    const d = await decide('еконтомат');
+    expect([d.rule, d.certainty, d.carrier]).toEqual(['C', 'uncertain', 'econt']);
+  });
+});
+
 describe('T5-08: Shipping Method has no effect', () => {
   const methods = [
     'Free shipping',
