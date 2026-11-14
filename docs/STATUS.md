@@ -1,6 +1,6 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 14 Nov 2026, end of **Phase 4 — Courier points database and geocoding** (branch `phase-4-courier-points`).
+Last updated: 14 Nov 2026, after **Phase 4 — Courier points database and geocoding** (owner's answers recorded).
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
@@ -8,7 +8,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
 | 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). **Still to do by the owner:** the hosted migration (step 19). |
-| 4 Courier points + geocoding | Built on branch `phase-4-courier-points`. Local checks green: lint, typecheck, 180 core + 29 web + 15 unit tests (tests package), 161 integration tests, 20 e2e tests. Merge to `main` + tag `phase-4` once CI is green; then the hosted steps 21–25. |
+| 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Econt secrets set by the owner (step 23, 14 Nov 2026). **Still to do by the owner:** hosted steps 21, 22, 24, 25. |
 | 5–13 | Not started |
 
 ## Setup (15 steps)
@@ -51,7 +51,7 @@ Phase 4 on the hosted project (after the phase is merged; same terminal as step 
 
 21. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote`. It adds `20261115120000_courier_points` (and `20261114120000_shipments` too, if step 19 is not done yet). It turns on `pg_trgm`, `pg_net` and `pg_cron` and schedules the 5-minute "courier-sync-tick" job.
 22. `pnpm exec supabase functions deploy courier-sync`, then `pnpm exec supabase functions deploy geocode`.
-23. **Econt production login (not set yet).** In the Supabase dashboard: **Edge Functions → Secrets** (also under **Project Settings → Edge Functions**), add `ECONT_USERNAME` and `ECONT_PASSWORD`, then **Save**. The office list does not need them (it is public). Until they are set, Econt price calculations use Econt's demo system.
+23. **Econt production login: done by the owner on 14 Nov 2026.** (Where: **Edge Functions → Secrets** in the Supabase dashboard, `ECONT_USERNAME` and `ECONT_PASSWORD`.) The office list does not need them (it is public). Price calculations use them once `settings.econt_env` is switched from `demo` to `production`; the first production call is also the first check that they are right.
 24. Log in as the owner → **Офиси** → **Обнови офисите**. Wait about a minute. This first press also tells the scheduled job where the function lives. After that, Econt updates every night at 03:00 and Speedy once a week (also at night), with no further action.
 25. Your check: about 640 Econt and 1 390 Speedy points, all "На картата". Choose Пловдив and check that the points are where you expect them.
 
@@ -283,14 +283,14 @@ Phase 3:
 
 Phase 4:
 
-- **"EcontApiAdapter — all methods" (P4-02) vs. "Out of scope: creating, printing or cancelling waybills" (§4).** I followed §4: the waybill methods exist but answer `not_available_yet` (Phase 9; tracking and COD payments Phase 11). Read-only methods work now.
+- **"EcontApiAdapter — all methods" (P4-02) vs. "Out of scope: creating, printing or cancelling waybills" (§4).** I followed §4: the waybill methods exist but answer `not_available_yet` (Phase 9; tracking and COD payments Phase 11). Read-only methods work now. **Confirmed by the owner on 14 Nov 2026:** waybills wait for Phase 9.
 - **Econt offices always come from production.** It is a public, read-only call that needs no login (the spec allows read-only production calls), and the demo list is test data (different counts, 4 offices without coordinates). Price calculations follow `settings.econt_env` (default `demo`) and use Econt's own published demo test account until the production login is set. That account is public data and is kept in the code; the production login is only read from the Supabase secrets.
 - **Econt hours:** "normal" hours are stored as Monday–Friday, "half day" as Saturday. Econt gives no Sunday hours, so Sunday is left unknown, not "closed".
 - **Speedy coordinates** come from the public map page, which has every office in one request. So there are no per-office requests at all, which is politer than "a few requests per second". Nominatim is only the fallback for offices missing from the map page (none on 14 Nov 2026).
 - **Schedule:** "Speedy weekly" = at night (03:00–06:00 Sofia time) once the last good Speedy update is more than 6½ days old. A failed scheduled run is retried after 30 minutes within that window; an interrupted run is resumed, at most 10 attempts per run.
 - **Too short = broken:** a list with less than half of the currently active points (once at least 20 are active) is treated as a broken source, not as "half the offices closed". Nothing is changed and the banner shows. Tell me if a different threshold suits you.
 - **Coordinates confidence** (0–3, like Econt's own): 3 = from the courier (Econt confidence 3, Speedy map page); 2 = street or block from Nominatim; 1 = quarter; 0 = town only. Econt's own confidence is kept as it is for Econt points.
-- **Geocoder privacy:** only the address text goes to Nominatim. Names, phones, e-mails and flat details (вх., ет., ап.) never do. Nominatim's policy asks apps "not to submit personal data". A street address alone is about as little as geocoding can send, but it is still an address, so please confirm you are fine with it (the alternative is geocoding only up to the street, without house or block numbers).
+- **Geocoder privacy:** only the address text goes to Nominatim. Names, phones, e-mails and flat details (вх., ет., ап.) never do. Nominatim's policy asks apps "not to submit personal data". A street address alone is about as little as geocoding can send. **Confirmed by the owner on 14 Nov 2026:** the address may be sent with the house or block number (the alternative was street + town only, less accurate).
 - **Contact e-mail for Nominatim:** the policy does not require one for an app of this size, so none is sent. `settings.geocoder.email` is there if you want to add one.
 - **Postcode search** (`points_in_city('4000')`) returns every point of the town that has that postcode. Speedy's list has no postcode for offices in the big towns, so Speedy points are found through their town.
 - **Map tiles** come from OpenStreetMap's own tile server, which allows light use with attribution. One owner looking at one town at a time is light use; nothing is downloaded in advance.
@@ -311,7 +311,7 @@ Phase 4:
 - Packers cannot delete rows, including `shipment_orders`. If Phase 3 lets packers split a combined shipment, that needs an RPC or a "detached" flag instead of a delete.
 - The repository is **public**. Never commit real CSV exports, customer data, `.env*` files or keys.
 - **Hosted Phase 4 is not set up yet** (steps 21–25). Until the first **Обнови офисите** on the hosted project, the scheduled job knows no function URL and does nothing ("not configured").
-- **Econt production login missing** on the hosted project (step 23). Nothing in Phase 4 needs it; price calculations stay on Econt's demo until it is set.
+- **Econt production login** is set (14 Nov 2026) but not tested yet: nothing in Phase 4 calls Econt production with a login. It is checked the first time `settings.econt_env` = `production`.
 - **Geocoding customer addresses is ready but not used yet**: Phase 5 calls the `geocode` function for imported orders. The hit rate above is from courier office addresses; customer addresses may be worse.
 - The map in the admin page puts up to a few hundred markers on one town (Sofia: about 400). They overlap at town zoom; zoom in or use the list below the map.
 
