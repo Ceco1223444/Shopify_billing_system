@@ -4,6 +4,7 @@
  * Google service is called by the app).
  */
 import type { DeliveryDecision } from './decide.ts';
+import type { PointCandidate } from './match.ts';
 import type { DetectionInput } from './signals.ts';
 
 const CARRIER_BG = { econt: 'Еконт', speedy: 'Спиди' } as const;
@@ -28,12 +29,18 @@ export function addressLinks(input: DetectionInput): { maps: string; search: str
   };
 }
 
+/** What the script needs: a fresh decision, or the one stored on the shipment. */
+export type ScriptDecision = Pick<DeliveryDecision, 'rule' | 'carrier' | 'deliveryType'> & {
+  reasons: { code: string }[];
+  suggestion: Pick<PointCandidate, 'carrier' | 'type' | 'name_bg'> | null;
+};
+
 /**
  * "Здравейте, обаждам се от HappyHome за поръчка #2008. Къде да изпратим пратката — до офис на
  * Спиди <име> или до личен адрес?" Always Bulgarian: it is what the person says to the customer.
  */
 export function callScript(
-  decision: DeliveryDecision,
+  decision: ScriptDecision,
   orderRefs: string,
   options: { shopName?: string; address?: string } = {},
 ): string {

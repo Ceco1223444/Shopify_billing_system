@@ -5,7 +5,9 @@ import {
   displayPhone,
   isOpenStatus,
   telHref,
+  packerCanSee,
   visibleToPacker,
+  waitsForCall,
 } from './shipments';
 
 describe('shipment helpers', () => {
@@ -23,6 +25,20 @@ describe('shipment helpers', () => {
     expect(visibleToPacker('imported')).toBe(false);
     expect(visibleToPacker('ready')).toBe(true);
     expect(visibleToPacker('handed_over')).toBe(true);
+  });
+
+  it('a shipment that only needs a call is shown to packers too (Phase 5)', () => {
+    const call = { status: 'needs_check', delivery_certainty: 'uncertain', flags_other: 0 };
+    expect(waitsForCall(call)).toBe(true);
+    expect(waitsForCall({ ...call, delivery_certainty: 'error' })).toBe(true);
+    expect(packerCanSee(call)).toBe(true);
+    // another problem waits for the owner first
+    expect(waitsForCall({ ...call, flags_other: 1 })).toBe(false);
+    expect(packerCanSee({ ...call, flags_other: 1 })).toBe(false);
+    // sure about the delivery: the needs_check is about something else
+    expect(packerCanSee({ ...call, delivery_certainty: 'certain' })).toBe(false);
+    expect(packerCanSee({ ...call, status: 'imported' })).toBe(false);
+    expect(packerCanSee({ ...call, status: 'ready', delivery_certainty: 'certain' })).toBe(true);
   });
 
   it.each([

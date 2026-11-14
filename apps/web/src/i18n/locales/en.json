@@ -260,12 +260,37 @@
       "banner_one": "{{count}} CSV file is waiting for archive",
       "banner_other": "{{count}} CSV files are waiting for archive",
       "bannerLink": "Go to the archive"
+    },
+    "delivery": {
+      "title": "Delivery: offices and couriers",
+      "intro": "How the app decides where each shipment goes.",
+      "range": "Largest distance to an office or locker (km)",
+      "rangeHint": "If the customer gave only an address and an office or locker is this close, the app suggests it and recommends a call. Otherwise the shipment goes to the address.",
+      "tie": "Courier for home deliveries",
+      "tieHint": "Used for home deliveries until prices are compared (Phase 7), and when two offices are equally close.",
+      "words": "More words to recognise",
+      "wordsHint": "Add words customers write (separated by commas). They are added to the built-in words and never replace them.",
+      "category": {
+        "econt": "Econt",
+        "speedy": "Speedy",
+        "other": "Other couriers (we do not use them)",
+        "office": "Office",
+        "locker": "Locker",
+        "home": "To the address"
+      },
+      "builtIn": "Built in: {{words}}…",
+      "save": "Save",
+      "saved_one": "Saved. The app decides again for {{count}} open shipment.",
+      "saved_other": "Saved. The app decides again for {{count}} open shipments.",
+      "badRange": "The distance must be a number between 0.1 and 50 km.",
+      "failed": "Could not save. Try again."
     }
   },
   "shipments": {
     "filter": {
       "label": "Show",
       "check": "Needs check",
+      "call": "Call",
       "ready": "Ready",
       "open": "Not sent yet",
       "all": "All"
@@ -279,6 +304,7 @@
       "orders": "Orders",
       "recipient": "Recipient",
       "city": "City",
+      "delivery": "Delivery",
       "cod": "Cash on delivery",
       "status": "Status",
       "flags": "To check"
@@ -389,6 +415,83 @@
       "dupAddress": "Address",
       "dupProducts": "Products",
       "dupTotal": "Total"
+    }
+  },
+  "delivery": {
+    "title": "Delivery",
+    "type": {
+      "office": "Office",
+      "locker": "Locker",
+      "mobile": "Mobile office",
+      "address": "To the address"
+    },
+    "certainty": {
+      "certain": "Sure",
+      "uncertain": "Call",
+      "error": "Error",
+      "pending": "Checking…"
+    },
+    "pending": "The app is still working out where this shipment goes. This happens within 2 minutes of the import.",
+    "suggested": "Suggested: {{point}}",
+    "suggestionLabel": "Suggested:",
+    "alternatives": "Other close options:",
+    "why": "Why",
+    "manual": "Chosen by a person",
+    "shippingMethod": "Shipping method from the shop (for information only, not used): {{method}}",
+    "links": {
+      "maps": "The address in Google Maps",
+      "search": "Search the address on Google"
+    },
+    "call": {
+      "title": "Call the customer",
+      "noPhone": "No phone number. Email the customer.",
+      "attempts_one": "No answer {{count}} time:",
+      "attempts_other": "No answer {{count}} times:",
+      "confirm": "Confirm the suggestion",
+      "otherPoint": "Another office",
+      "home": "Home address",
+      "noAnswer": "No answer — try again",
+      "refused": "Cancels the order",
+      "refuseReason": "Why does the customer cancel? (required)",
+      "refuseConfirm": "Yes, cancel the shipment"
+    },
+    "picker": {
+      "title": "Choose an office or locker",
+      "label": "Office name or address",
+      "search": "Search",
+      "none": "No offices found.",
+      "failed": "The offices could not be loaded. Try again.",
+      "choose": "Choose"
+    },
+    "done": {
+      "confirmed": "Saved: confirmed on the phone.",
+      "other_point": "Saved: the new office is chosen.",
+      "home_address": "Saved: delivery to the address.",
+      "no_answer": "Saved: no answer. Try again later.",
+      "refused": "Saved: the customer cancelled. The shipment is cancelled."
+    },
+    "address": {
+      "edit": "Correct the address",
+      "address1": "Address (line 1)",
+      "address2": "Address (line 2)",
+      "city": "Town",
+      "zip": "Postcode",
+      "hint": "After saving, the app checks again where the shipment goes.",
+      "save": "Save the address",
+      "saved": "The address is saved. Checking again…"
+    },
+    "reset": {
+      "button": "Let the app decide again",
+      "done": "The manual choice is removed. The app decides again."
+    },
+    "error": {
+      "version_conflict": "Someone else just changed this shipment. The page has refreshed — try again.",
+      "shipment_locked": "This shipment can no longer be changed.",
+      "reason_required": "Write why the customer cancels.",
+      "unknown_point": "This office no longer exists. Choose another one.",
+      "nothing_to_confirm": "There is nothing to confirm. Choose an office or “Home address”.",
+      "owner_only": "Only the owner can do this.",
+      "other": "Something went wrong. Try again."
     }
   },
   "offices": {

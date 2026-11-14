@@ -926,3 +926,122 @@ progress {
 .map-pin-mobile .map-pin-letter {
   transform: rotate(-45deg);
 }
+
+/* ---- delivery (Phase 5) ---- */
+.delivery-card h3 {
+  margin-top: 0.75rem;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.row.tight {
+  gap: 0.4rem;
+}
+
+/* The carrier as a word on its colour (the word carries the meaning). */
+.carrier-badge {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.carrier-econt {
+  background: #1f5fbf;
+}
+
+.carrier-speedy {
+  background: #b3202a;
+}
+
+.delivery-type {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.delivery-cell {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+  min-width: 11rem;
+}
+
+.office-name {
+  font-weight: 600;
+}
+
+.call-box {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--warn-text);
+  border-radius: var(--radius);
+  background: var(--warn-bg);
+}
+
+.delivery-card[data-certainty='error'] .call-box {
+  border-color: var(--error-text);
+  background: var(--error-bg);
+}
+
+.call-script {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  font-size: 1.05rem;
+}
+
+.call-actions {
+  margin: 0.75rem 0 0;
+}
+
+.picker-results {
+  max-height: 22rem;
+  overflow-y: auto;
+  margin: 0.5rem 0;
+}
+
+.picker-results li {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.point-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.input-short {
+  max-width: 10rem;
+}
+
+.plain-fieldset {
+  border: 0;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.plain-fieldset legend {
+  font-weight: 600;
+  padding: 0;
+}
+
+label.radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  margin: 0.25rem 0;
+}
+
+label.radio input {
+  width: auto;
+  min-height: auto;
+}

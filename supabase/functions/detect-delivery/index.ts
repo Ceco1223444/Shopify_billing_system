@@ -6,6 +6,7 @@
 //   ids      the given shipments now (after a person edits an address); answers with the decisions
 // Callers: members (owner and packers), pg_cron (its token), a service key (scripts, tests).
 // The geocoder keeps Nominatim's pace (1.2 s apart); a busy geocoder leaves the shipment pending.
+// On the local stack the geocoder is off (no test address ever reaches Nominatim).
 // Nothing about the customer is logged.
 import { NOMINATIM_DEFAULT_URL, type GeocoderSettings } from '../_shared/core.ts';
 import { runDetection, type DeliveryJobDeps } from '../_shared/delivery.ts';
@@ -61,11 +62,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { data: geocoder } = await admin.rpc('app_setting', { p_key: 'geocoder' });
+  const { data: stored } = await admin.rpc('app_setting', { p_key: 'geocoder' });
+  const geocoder = (stored as GeocoderSettings | null) ?? FALLBACK_GEOCODER;
+  // The local stack (tests, CI) never sends addresses to the public Nominatim: there the geocoder
+  // is off unless GEOCODER_LOCAL=on is set for the local functions.
+  const localOff = isLocalStack() && Deno.env.get('GEOCODER_LOCAL') !== 'on';
   const deps: DeliveryJobDeps = {
     db: admin,
     fetch,
-    geocoder: (geocoder as GeocoderSettings | null) ?? FALLBACK_GEOCODER,
+    geocoder: localOff ? { ...geocoder, enabled: false } : geocoder,
     geocodeMaxWaitMs: action === 'ids' ? 8_000 : 20_000,
   };
 

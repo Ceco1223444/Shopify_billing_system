@@ -3,8 +3,8 @@ import {
   formatDateTime,
   formatMoneyCents,
   isOpenStatus,
+  packerCanSee,
   telHref,
-  visibleToPacker,
 } from '@happyhome/core';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,7 @@ import {
   type FlagRow,
   type LoadedShipment,
 } from './data';
+import { DeliveryCard } from './DeliveryCard';
 import { CombinedChip, StatusBadge } from './parts';
 
 interface SideBySideOrder {
@@ -187,7 +188,7 @@ export function ShipmentPage() {
     );
 
   const s = data.shipment;
-  if (!isOwner && !visibleToPacker(s.status)) {
+  if (!isOwner && !packerCanSee(s)) {
     return (
       <section>
         {back}
@@ -378,6 +379,8 @@ export function ShipmentPage() {
           <p className="muted">{t('shipments.detail.resolved', { count: resolved })}</p>
         )}
       </div>
+
+      <DeliveryCard shipment={s} orders={data.orders} isOwner={isOwner} onChanged={reload} />
 
       <div className="grid-2">
         <div className="card">

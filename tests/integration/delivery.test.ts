@@ -451,6 +451,25 @@ describe('calls (owner and packers)', () => {
     expect((s.manual_overrides as Record<string, unknown>).delivery).toBeUndefined();
     expect(s.delivery_dirty).toBe(true);
   });
+
+  it('after a settings change the owner has open shipments decided again, never manual ones', async () => {
+    const ids = Object.values(shipmentOf);
+    await db.query(`update public.shipments set delivery_dirty = false where id = any($1)`, [ids]);
+    expect(await rpcError(packer.rpc('delivery_redetect_open'))).toMatchObject({ code: '42501' });
+    const { data, error } = await owner.rpc('delivery_redetect_open');
+    expect(error).toBeNull();
+    expect(data).toBeGreaterThan(0);
+    const { rows } = await db.query(
+      `select delivery_dirty, status, manual_overrides ? 'delivery' as manual
+       from public.shipments where id = any($1)`,
+      [ids],
+    );
+    expect(rows.some((r) => r.manual)).toBe(true);
+    for (const r of rows) {
+      const open = ['imported', 'needs_check', 'ready'].includes(r.status);
+      expect(r.delivery_dirty).toBe(open && !r.manual);
+    }
+  });
 });
 
 describe('the decision store and the function', () => {

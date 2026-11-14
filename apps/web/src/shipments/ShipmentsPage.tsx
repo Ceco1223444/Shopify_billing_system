@@ -1,4 +1,4 @@
-import { compareShipments, formatMoneyCents, isOpenStatus, visibleToPacker } from '@happyhome/core';
+import { compareShipments, formatMoneyCents, isOpenStatus, packerCanSee } from '@happyhome/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -12,12 +12,15 @@ import {
   type ActionError,
   type ShipmentRow,
 } from './data';
+import { needsCall } from './delivery';
+import { DeliveryCell } from './deliveryParts';
 import { CombinedChip, FlagCounts, StatusBadge } from './parts';
 
-type Filter = 'check' | 'ready' | 'open' | 'all';
+type Filter = 'check' | 'call' | 'ready' | 'open' | 'all';
 
 const FILTERS: Record<Filter, (s: ShipmentRow) => boolean> = {
   check: (s) => s.status === 'needs_check' || s.status === 'imported',
+  call: needsCall,
   ready: (s) => s.status === 'ready',
   open: (s) => isOpenStatus(s.status),
   all: () => true,
@@ -59,16 +62,17 @@ export function ShipmentsPage() {
   }, []);
   useShipmentChanges('shipments-list', reload);
 
-  // Packers never see shipments that wait for the owner's check (P3-15).
+  // Packers never see shipments that wait for the owner's check (P3-15), except the ones that
+  // only wait for a phone call about the delivery (Phase 5: the owner and the packers call).
   const mine = useMemo(
-    () => (rows ?? []).filter((s) => isOwner || visibleToPacker(s.status)).sort(compareShipments),
+    () => (rows ?? []).filter((s) => isOwner || packerCanSee(s)).sort(compareShipments),
     [rows, isOwner],
   );
-  const hiddenFromPacker = isOwner
-    ? 0
-    : (rows ?? []).filter((s) => !visibleToPacker(s.status)).length;
+  const hiddenFromPacker = isOwner ? 0 : (rows ?? []).filter((s) => !packerCanSee(s)).length;
   const shown = mine.filter(FILTERS[filter]);
-  const filters: Filter[] = isOwner ? ['check', 'ready', 'open', 'all'] : ['ready', 'open', 'all'];
+  const filters: Filter[] = isOwner
+    ? ['check', 'call', 'ready', 'open', 'all']
+    : ['call', 'ready', 'open', 'all'];
 
   const chosen = mine.filter((s) => s.id && selected.includes(s.id));
   const canMerge = chosen.length === 2 && chosen.every((s) => isOpenStatus(s.status));
@@ -202,6 +206,7 @@ export function ShipmentsPage() {
                 <th>{t('shipments.col.orders')}</th>
                 <th>{t('shipments.col.recipient')}</th>
                 <th>{t('shipments.col.city')}</th>
+                <th>{t('shipments.col.delivery')}</th>
                 <th className="num">{t('shipments.col.cod')}</th>
                 <th>{t('shipments.col.status')}</th>
                 <th>{t('shipments.col.flags')}</th>
@@ -236,6 +241,9 @@ export function ShipmentsPage() {
                     {s.recipient_phone_raw && <div className="muted">{s.recipient_phone_raw}</div>}
                   </td>
                   <td>{s.city}</td>
+                  <td>
+                    <DeliveryCell shipment={s} />
+                  </td>
                   <td className="num">
                     {s.cod_cents ? (
                       formatMoneyCents(s.cod_cents)

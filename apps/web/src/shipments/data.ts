@@ -70,6 +70,8 @@ export interface OrderDetail {
   phone_raw: string | null;
   email: string | null;
   notes: string | null;
+  /** Shopify's shipping method: shown for information only, never used to decide (Phase 5). */
+  shipping_method: string | null;
 }
 
 export interface LoadedShipment {
@@ -106,7 +108,7 @@ export async function loadShipment(id: string): Promise<LoadedShipment | null> {
       ? supabase
           .from('orders')
           .select(
-            'id, name, created_at_shopify, payment_method, total_cents, shipping_name, phone_raw, email, notes',
+            'id, name, created_at_shopify, payment_method, total_cents, shipping_name, phone_raw, email, notes, shipping_method',
           )
           .in('id', orderIds)
       : Promise.resolve({ data: [] as OrderDetail[], error: null }),
@@ -143,7 +145,7 @@ export async function loadShipment(id: string): Promise<LoadedShipment | null> {
   };
 }
 
-/** Calls onChange (debounced) whenever a shipment or a flag changes anywhere. */
+/** Calls onChange (debounced) whenever a shipment, a flag or a call changes anywhere. */
 export function useShipmentChanges(topic: string, onChange: () => void): void {
   const latest = useRef(onChange);
   useEffect(() => {
@@ -159,7 +161,8 @@ export function useShipmentChanges(topic: string, onChange: () => void): void {
       setup: (channel) => {
         channel
           .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' }, poke)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'flags' }, poke);
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'flags' }, poke)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'shipment_calls' }, poke);
       },
     });
     return () => {

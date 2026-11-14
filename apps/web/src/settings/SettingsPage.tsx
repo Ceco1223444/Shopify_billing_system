@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { useSettings } from '../lib/settings';
 import { ArchiveSettings } from './ArchiveSettings';
 import { ColumnChooser } from './ColumnChooser';
+import { DeliverySettings } from './DeliverySettings';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -36,6 +37,16 @@ export function SettingsPage() {
         <p>{t('settings.columns.intro')}</p>
         {settings.values ? (
           <ColumnChooser visible={settings.values.visible_columns} save={settings.save} />
+        ) : (
+          <p className="muted">{t('app.loading')}</p>
+        )}
+      </div>
+
+      <div className="card" id="delivery">
+        <h2>{t('settings.delivery.title')}</h2>
+        <p>{t('settings.delivery.intro')}</p>
+        {settings.values ? (
+          <DeliverySettings values={settings.values} save={settings.save} />
         ) : (
           <p className="muted">{t('app.loading')}</p>
         )}

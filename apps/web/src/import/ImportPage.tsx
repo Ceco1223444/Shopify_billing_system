@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { currentLocale, intlLocale } from '../i18n';
 import { formatBytes } from '../lib/download';
 import { supabase } from '../lib/supabase';
+import { startDetection } from '../shipments/delivery';
 import {
   importOneFile,
   type ImportCounts,
@@ -249,6 +250,9 @@ export function ImportPage() {
         if (outcome.kind === 'done') setHistoryVersion((v) => v + 1);
       }
       setCurrent(null);
+      // Phase 5: where each new shipment goes. It runs in the background (and every 2 minutes
+      // from the server anyway), so a failure here only delays the chips a little.
+      if (added.length) void startDetection();
     });
   }, []);
 

@@ -730,6 +730,9 @@ isOneToOne: false
               "address1": string,"address2": string,"city": string,"company": string,"country": string,"id": string,"manual": boolean,"notes": (string)[],"reference": string,"shipping_method": string,"version": number,"zip": string
             }[]
                            },
+"delivery_redetect_open":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "delivery_reset":
 { Args: { "p_shipment_id": string }; Returns: undefined
                            },

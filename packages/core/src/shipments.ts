@@ -24,6 +24,31 @@ export function visibleToPacker(status: string | null | undefined): boolean {
   return status !== 'needs_check' && status !== 'imported';
 }
 
+/** The parts of a shipment that decide whether it only waits for a phone call (Phase 5). */
+export interface CallState {
+  status: string | null;
+  delivery_certainty: string | null;
+  /** Open red / amber flags other than the delivery one. */
+  flags_other: number | null;
+}
+
+/**
+ * Phase 5 (owner's decision: the owner and the packers call customers): a shipment whose only
+ * problem is "where to deliver" waits for a call, and everyone who calls sees it.
+ */
+export function waitsForCall(s: CallState): boolean {
+  return (
+    s.status === 'needs_check' &&
+    (s.delivery_certainty === 'uncertain' || s.delivery_certainty === 'error') &&
+    (s.flags_other ?? 0) === 0
+  );
+}
+
+/** What a packer's list shows: their usual shipments plus the ones that only wait for a call. */
+export function packerCanSee(s: CallState): boolean {
+  return visibleToPacker(s.status) || waitsForCall(s);
+}
+
 /** Why several orders travel together, as stored in shipments.combined_by. */
 export const COMBINED_BY = ['phone', 'email', 'manual'] as const;
 export type CombinedBy = (typeof COMBINED_BY)[number];

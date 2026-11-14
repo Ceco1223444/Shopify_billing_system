@@ -474,6 +474,29 @@ begin
 end;
 $$;
 
+-- After the owner changes the detection settings (range, home courier, words): decide again for
+-- every open shipment that no person has decided by hand. Returns how many were marked.
+create or replace function public.delivery_redetect_open()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  if not (select private.is_owner()) then
+    raise exception 'owner_only' using errcode = '42501';
+  end if;
+  update public.shipments s set delivery_dirty = true
+  where s.status in ('imported', 'needs_check', 'ready')
+    and not (s.manual_overrides ? 'delivery')
+    and not s.delivery_dirty;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
 do $$
 declare
   f text;
@@ -489,7 +512,8 @@ begin
     'public.points_by_code(text, text[])',
     'public.delivery_call_outcome(uuid, text, uuid, text, integer)',
     'public.shipment_update_address(uuid, text, text, text, text, integer)',
-    'public.delivery_reset(uuid)'
+    'public.delivery_reset(uuid)',
+    'public.delivery_redetect_open()'
   ] loop
     execute format('revoke all on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated, service_role', f);
