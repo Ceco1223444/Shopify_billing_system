@@ -99,11 +99,23 @@ describe('detection properties', () => {
         expect(r.bg.trim(), where).not.toBe('');
         expect(r.en.trim(), where).not.toBe('');
       }
+      // Offices only (owner, 14 Nov 2026): no locker or mobile office is ever decided, suggested
+      // or offered, whatever the customer wrote.
+      for (const p of [d.point, d.suggestion, ...d.alternatives]) {
+        if (p) expect(p.type, where).toBe('office');
+      }
+      expect(d.deliveryType, where).not.toBe('locker');
       if (d.certainty === 'certain') {
         certain++;
         if (d.deliveryType === 'address') {
-          expect(d.rule, where).toBe('B');
+          // B: "до адрес" + street; E (owner's middle way): nothing asked, no office near, and a
+          // complete street address found on the map beyond the town.
+          expect(['B', 'E'], where).toContain(d.rule);
           expect(analyze(input, dictionary).streetAddress, where).toBe(true);
+          if (d.rule === 'E') {
+            expect(d.geo?.precision, where).not.toBe('city');
+            expect(analyze(input, dictionary).pointWords, where).toEqual([]);
+          }
         } else {
           expect(d.rule, where).toBe('A');
           expect(d.point, where).not.toBeNull();

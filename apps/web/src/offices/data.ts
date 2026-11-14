@@ -1,4 +1,5 @@
 import type { WorkingHours } from '@happyhome/core/couriers';
+import type { PointType } from '@happyhome/core/couriers';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase, supabasePublishableKey, supabaseUrl } from '../lib/supabase';
 import { SYNC_RUN_COLUMNS, type PointStat, type SyncRun } from './syncStatus';
@@ -47,14 +48,27 @@ export async function fetchPointStats(): Promise<PointStat[]> {
   return (data ?? []) as PointStat[];
 }
 
-export async function fetchPointsInCity(query: string): Promise<MapPoint[]> {
+/** The points of a town; with `types`, only those kinds (settings.point_types). */
+export async function fetchPointsInCity(
+  query: string,
+  types?: readonly PointType[],
+): Promise<MapPoint[]> {
   const { data, error } = await supabase.rpc('points_in_city', { p_query: query });
   if (error) throw error;
-  return (data ?? []) as MapPoint[];
+  const points = (data ?? []) as MapPoint[];
+  return types ? points.filter((p) => types.includes(p.type)) : points;
 }
 
-export async function searchPoints(query: string): Promise<MapPoint[]> {
-  const { data, error } = await supabase.rpc('search_points', { p_query: query, p_limit: 20 });
+/** Search by name or address; with `types`, only those kinds (settings.point_types). */
+export async function searchPoints(
+  query: string,
+  types?: readonly PointType[],
+): Promise<MapPoint[]> {
+  const { data, error } = await supabase.rpc('search_points', {
+    p_query: query,
+    p_limit: 20,
+    ...(types ? { p_types: [...types] } : {}),
+  });
   if (error) throw error;
   return (data ?? []) as MapPoint[];
 }

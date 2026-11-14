@@ -5,6 +5,9 @@
  *
  * The points and runs are written straight into the local database. Map tiles and the sync
  * call are intercepted: no request leaves the computer.
+ *
+ * The Phase 4 tests run with every point type allowed; the owner's setting since 14 Nov 2026 is
+ * offices only (settings.point_types), tested at the end.
  */
 import type pg from 'pg';
 import type { Page } from '@playwright/test';
@@ -75,10 +78,17 @@ const POINTS = [
   ],
 ] as const;
 
+async function setPointTypes(types: string[]) {
+  await db.query(`update public.settings set value = $1::jsonb where key = 'point_types'`, [
+    JSON.stringify(types),
+  ]);
+}
+
 test.describe('courier offices screen', () => {
   test.beforeAll(async () => {
     db = await pgClient();
     await resetCourierData(db);
+    await setPointTypes(['office', 'locker', 'mobile']);
     for (const [carrier, id, type, name, city, postcode, address, lat, lng] of POINTS) {
       await db.query(
         `insert into public.courier_offices
@@ -98,6 +108,7 @@ test.describe('courier offices screen', () => {
   });
 
   test.afterAll(async () => {
+    await setPointTypes(['office']);
     await resetCourierData(db);
     await db.end();
   });
@@ -114,7 +125,7 @@ test.describe('courier offices screen', () => {
     await expect(banner).not.toContainText('Еконт');
     await banner.getByRole('link', { name: 'Подробности' }).click();
     await expect(page).toHaveURL(/\/offices$/);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Офиси и автомати');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Офиси');
     await expect(banner.getByRole('link')).toHaveCount(0);
 
     // P4-26: counts per courier and type, last sync, the error.
@@ -193,6 +204,39 @@ test.describe('courier offices screen', () => {
     await page.getByRole('button', { name: 'Обнови офисите' }).click();
     await expect(page.getByText('Обновяването започна.')).toBeVisible();
     expect(body).toEqual({ action: 'start' });
+  });
+
+  test("offices only (the owner's setting): no lockers on the map, in the list or the search", async ({
+    openAs,
+  }) => {
+    await setPointTypes(['office']);
+    try {
+      const page = await openAs(TEST_USERS.owner);
+      await offlineTiles(page);
+      await page.goto('/offices');
+      await expect(page.getByTestId('offices-only')).toContainText('само офиси');
+      const econt = page.getByTestId('offices-counts-econt');
+      await expect(econt).toContainText('1 офис');
+      await expect(econt).not.toContainText('1 автомат');
+      await expect(page.getByTestId('offices-unused-econt')).toContainText('не се използват');
+
+      // Plovdiv: the two offices only (the Econt locker and the Speedy locker are left out).
+      await expect(page.getByTestId('offices-map-count')).toContainText('2 точки в Пловдив');
+      await expect(page.getByTestId('offices-map-count')).not.toContainText('няма координати');
+      const map = page.getByTestId('office-map');
+      await expect(map.locator('.leaflet-marker-icon')).toHaveCount(2);
+      await expect(map.locator('.map-pin-locker')).toHaveCount(0);
+
+      // The search does not find the locker.
+      await page.getByLabel('Име или адрес').fill('ekontomat trakia');
+      await page.getByRole('button', { name: 'Търси' }).click();
+      await expect(page.getByTestId('offices-search-results')).toHaveCount(0);
+      await expect(
+        page.getByRole('status').filter({ hasText: '„ekontomat trakia“' }),
+      ).toBeVisible();
+    } finally {
+      await setPointTypes(['office', 'locker', 'mobile']);
+    }
   });
 
   test('a packer has no offices screen and no banner', async ({ openAs }) => {

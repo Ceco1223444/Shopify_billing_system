@@ -43,8 +43,8 @@
       "intro": "The owner changes the shop's settings here."
     },
     "offices": {
-      "title": "Offices and lockers",
-      "intro": "All Econt and Speedy offices and lockers. The list updates itself: Econt every night, Speedy once a week."
+      "title": "Offices",
+      "intro": "The Econt and Speedy offices. The list updates itself: Econt every night, Speedy once a week."
     },
     "notFound": {
       "title": "Page not found",
@@ -264,8 +264,8 @@
     "delivery": {
       "title": "Delivery: offices and couriers",
       "intro": "How the app decides where each shipment goes.",
-      "range": "Largest distance to an office or locker (km)",
-      "rangeHint": "If the customer gave only an address and an office or locker is this close, the app suggests it and recommends a call. Otherwise the shipment goes to the address.",
+      "range": "Largest distance to an office (km)",
+      "rangeHint": "If the customer gave only an address and an office is this close, the app suggests it and recommends a call. If there is none and the address is complete (street and number, found on the map), the shipment goes to the address without a call.",
       "tie": "Courier for home deliveries",
       "tieHint": "Used for home deliveries until prices are compared (Phase 7), and when two offices are equally close.",
       "words": "More words to recognise",
@@ -461,7 +461,7 @@
       "refuseConfirm": "Yes, cancel the shipment"
     },
     "picker": {
-      "title": "Choose an office or locker",
+      "title": "Choose an office",
       "label": "Office name or address",
       "search": "Search",
       "none": "No offices found.",
@@ -517,7 +517,9 @@
       "locker_one": "{{count}} locker",
       "locker_other": "{{count}} lockers",
       "mobile_one": "{{count}} mobile office",
-      "mobile_other": "{{count}} mobile offices"
+      "mobile_other": "{{count}} mobile offices",
+      "notUsed_one": "{{count}} locker or mobile office (not used)",
+      "notUsed_other": "{{count}} lockers and mobile offices (not used)"
     },
     "source": {
       "econt": "Source: Econt's official list.",
@@ -554,17 +556,18 @@
     },
     "map": {
       "title": "Map of one town",
-      "intro": "Choose a town to see its offices and lockers on the map.",
+      "intro": "Choose a town to see its offices on the map.",
       "cityLabel": "Town or postcode",
       "show": "Show",
-      "label": "Map of the offices and lockers in {{city}}",
+      "label": "Map of the offices in {{city}}",
       "found_one": "{{count}} point in {{city}}",
       "found_other": "{{count}} points in {{city}}",
-      "none": "No offices or lockers for “{{city}}”.",
+      "none": "No offices for “{{city}}”.",
       "noCoords_one": "{{count}} point has no coordinates and is not on the map.",
       "noCoords_other": "{{count}} points have no coordinates and are not on the map.",
       "legend": "E = Econt, S = Speedy. Square = office, circle = locker, diamond = mobile office.",
-      "loadFailed": "The offices for this town could not be loaded."
+      "loadFailed": "The offices for this town could not be loaded.",
+      "legendOffices": "E = Econt, S = Speedy."
     },
     "search": {
       "title": "Find an office",
@@ -578,6 +581,7 @@
       "type": "Type",
       "name": "Name",
       "address": "Address"
-    }
+    },
+    "onlyOffices": "Only offices are shown and suggested. Lockers and mobile offices are not used: the parcels are big."
   }
 }

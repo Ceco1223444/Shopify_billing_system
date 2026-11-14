@@ -9,7 +9,7 @@ Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions 
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
 | 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). Hosted migration pushed (step 19, 14 Nov 2026). **Still to do by the owner:** the check in step 20. |
 | 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Hosted (14 Nov 2026): migration pushed, `courier-sync` + `geocode` deployed, Econt secrets set, first "Обнови офисите" done (639 Econt + 1 389 Speedy points, all on the map). **Still to do by the owner:** look at the Plovdiv map (step 25). |
-| 5 Delivery point detection | Done. Merged to `main` and tagged `phase-5`, CI green ([run 43547677232](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43547677232)). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. Hosted (14 Nov 2026): migration pushed and `detect-delivery` deployed (steps 26–28); 3 of 17 shipments decided. The other 14 need a map, and the public Nominatim refuses Supabase: **branch `phase-5-hosted-geocoder` switches to Geoapify; still to do by the owner: steps 30–34, then step 29.** |
+| 5 Delivery point detection | Done, plus the owner's changes of 14 Nov 2026 (**offices only**, rule E "middle way": branch `phase-5-offices-only`, hosted steps 35–37). Merged to `main` and tagged `phase-5`, CI green ([run 43547677232](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43547677232)). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. Hosted (14 Nov 2026): steps 26–28 and the Geoapify switch (steps 30–34) done; all 17 shipments decided (3 Сигурно, 14 Обадете се, 0 Грешка). **Still to do by the owner:** steps 35–37, then the check in step 29. |
 | 6–13 | Not started |
 
 ## Setup (15 steps)
@@ -69,7 +69,13 @@ Geocoder on the hosted project: Geoapify (after branch `phase-5-hosted-geocoder`
 31. Supabase dashboard → **Edge Functions → Secrets** → add `GEOAPIFY_API_KEY` with that key. Type it there yourself: the key never goes into the code, the database or a log.
 32. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote --yes`. It adds `20261117120000_geocoder_geoapify`: `settings.geocoder` becomes Geoapify (only if you never changed it).
 33. Deploy the three functions that use the geocoder: `pnpm exec supabase functions deploy detect-delivery --yes`, then the same for `geocode` and `courier-sync`.
-34. Your check: within about 2 minutes every shipment in **Пратки** has a chip (no more "Проверява се…"), and the "Доставка" card ends with "Powered by Geoapify · © OpenStreetMap". If they stay grey, the function log says why (for example "GEOAPIFY_API_KEY is not set" or "geoapify answered HTTP 401" = wrong key).
+34. **Done 14 Nov 2026:** all 17 hosted shipments decided in one run. Map precision of the 14 that needed one: 8 street, 2 block, 2 quarter, 2 town only. (Original check: within about 2 minutes every shipment in **Пратки** has a chip (no more "Проверява се…"), and the "Доставка" card ends with "Powered by Geoapify · © OpenStreetMap". If they stay grey, the function log says why (for example "GEOAPIFY_API_KEY is not set" or "geoapify answered HTTP 401" = wrong key).)
+
+Offices only and the rule E "middle way" (after branch `phase-5-offices-only` is merged):
+
+35. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote --yes`. It adds `20261118120000_offices_only`: the setting `point_types` = offices only, and every open shipment not chosen by hand is detected again.
+36. `pnpm exec supabase functions deploy detect-delivery --yes`.
+37. Your check: within about 2 minutes no shipment shows 📦 Автомат or 🚐 Подвижен офис, and no suggestion is a locker. **Офиси** shows only offices ("N автомата и подвижни офиса (не се използват)"). A plain street address with no office within 1 km is **Сигурно**, to the address.
 
 ## What Phase 1 built
 
@@ -300,6 +306,17 @@ When the T5-03 test office "Пловдив Тест" exists, #2002 + #2007 is ru
 
 No sample contradicts the rules, and the thresholds 0.75 / 0.10 gave no clearly wrong match on the test data. Real exports will show more.
 
+## Owner's changes after Phase 5 (14 Nov 2026)
+
+- **Offices only.** The products are too big for lockers (автомат, пакетомат, Еконтомат) and for Econt's mobile offices. New setting `point_types` (migration `20261118120000_offices_only`, default `["office"]`; the other values are `locker` and `mobile`):
+  - The detection never decides, suggests or offers a point of a type not in the setting (rules A, C, D, E, the alternatives, the best-name fallback). A property test checks it on 2 000 random inputs.
+  - A locker the customer names ("Еконтомат Тракия", "Спиди автомат Кауфланд Тракия", "Speedy автомат 9145") is still recognised: rule C, **Обадете се**, reason "Клиентът иска автомат (…), но не изпращаме до автомати.", and the nearest office **of the same courier to that locker** is suggested. "Спиди автомат" with no name: rule C, the nearest Speedy office to the address, and "Не изпращаме до автомати: предложен е офис."
+  - Web: the **Офиси** page (title "Офиси"), its map, list, search and counts show only those types, with a note and "N автомата и подвижни офиса (не се използват)". The "Друг офис" picker lists only offices. The call script says "офис", not "офис или автомат". The texts say "офис".
+  - The courier lists still sync **every** point (nothing deleted), so the setting can be widened later. There is no switch for it in Settings yet (it is a database setting); tell me if you want one.
+  - Not enforced in the database: the "Друг офис" RPC still accepts any active point id. The picker offers only offices.
+  - The Phase 5 case table (81 cases) still runs with every type allowed, as the spec wrote it; a new "offices only" block tests the owner's setting.
+- **Rule E "middle way"** (owner's answer to the open question): nothing asked for (no courier, office, locker or home words), no office within `office_range_km`, the address has a street / ж.к. and a number / block (as rule B), and the map found it beyond the town → **Сигурно**, to the address, courier = `home_carrier_tie_break` until Phase 7. Otherwise still **Обадете се**, with "Адресът е непълен" when the street or number is missing. An office within range still means a call with that office suggested (P5-14). T5-07's 1.5 km case is now certain.
+
 ## Phase 5 on the hosted project (14 Nov 2026)
 
 What happened after steps 26–28, and what was changed:
@@ -408,7 +425,7 @@ Phase 4:
 Phase 5:
 
 - **Call tools for the owner AND the packers.** P5-22 says owner-only; the brief says the parents call the customers. **The owner chose "me and my parents" on 14 Nov 2026.** Packers now see a `needs_check` shipment when its only open problem is the delivery (no other red / amber flag), with the call tools and the address correction. Resetting a manual choice and the settings stay owner-only.
-- **Rule E is always "Обадете се"**, as P5-14 says, also when no office is within range (then home delivery is suggested). So a plain home address with no words like "до адрес" always needs a call. Customers who write "до адрес" / "личен адрес" + street and number are **Сигурно** (rule B). Tell me if a plain street address with no office within range should be "Сигурно" instead.
+- **Rule E:** the owner chose the "middle way" on 14 Nov 2026 (see "Owner's changes after Phase 5"): an office within range → a call; none, and a complete street address found on the map → **Сигурно**, to the address.
 - **P5-16 tie-break:** the nearest first (distances rounded to 10 m); on an exact tie the cheaper one (Phase 7, not yet), then `home_carrier_tie_break`. Points of either courier within 200 m of the nearest are shown as alternatives.
 - **Rule B's courier** is `home_carrier_tie_break` (Econt) until Phase 7 compares prices.
 - **Kind differs:** "автомат Капана", where Капана is an office → rule C "Обадете се" with the office suggested (P5-09: the type comes from the point, so the app asks instead of guessing).

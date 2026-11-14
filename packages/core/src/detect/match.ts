@@ -4,6 +4,7 @@
  * trigram similarity. A match is accepted only with score ≥ 0.75 AND 0.10 above the next one.
  */
 import type { SupportedCarrier } from '../domain.ts';
+import { POINT_TYPES, type PointType } from '../couriers/points.ts';
 import type { DetectionDictionary } from './dictionary.ts';
 import { findTerms, textForms } from './normalize.ts';
 import { cityWords, distinctiveWords, type PointWord } from './signals.ts';
@@ -12,11 +13,25 @@ import { similarity } from './trigram.ts';
 export const MATCH_MIN_SCORE = 0.75;
 export const MATCH_MIN_MARGIN = 0.1;
 
+/**
+ * settings.point_types default: the owner ships only to offices (14 Nov 2026: the products are
+ * too big for lockers and mobile offices).
+ */
+export const DEFAULT_POINT_TYPES: PointType[] = ['office'];
+
+/** settings.point_types as stored → a usable list (unknown values dropped; never empty). */
+export function pointTypesOf(value: unknown): PointType[] {
+  const list = Array.isArray(value)
+    ? POINT_TYPES.filter((t) => (value as unknown[]).includes(t))
+    : [];
+  return list.length ? list : [...DEFAULT_POINT_TYPES];
+}
+
 /** An active office / locker as the detection sees it (from points_in_city / nearest_points). */
 export interface PointCandidate {
   id: string;
   carrier: SupportedCarrier;
-  type: 'office' | 'locker' | 'mobile';
+  type: PointType;
   name_bg: string;
   city: string | null;
   postcode: string | null;

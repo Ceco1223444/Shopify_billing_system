@@ -1,4 +1,6 @@
 import type { DictionaryAdditions } from './detect/dictionary.ts';
+import type { PointType } from './couriers/points.ts';
+import { DEFAULT_POINT_TYPES } from './detect/match.ts';
 import type { CourierMode, SupportedCarrier } from './domain';
 import type { GeocoderSettings } from './geo/nominatim.ts';
 import { DEFAULT_VISIBLE_COLUMNS } from './import/columns';
@@ -32,6 +34,8 @@ export interface AppSettings {
   geocoder: GeocoderSettings;
   /** Phase 5: the owner's extra detection words, merged with Appendix B. */
   detection_dictionary: DictionaryAdditions;
+  /** The kinds of courier points the shop ships to (owner, 14 Nov 2026: offices only). */
+  point_types: PointType[];
 }
 
 export type SettingKey = keyof AppSettings;
@@ -60,4 +64,5 @@ export const SETTINGS_DEFAULTS: AppSettings = {
     email: null,
   },
   detection_dictionary: {},
+  point_types: [...DEFAULT_POINT_TYPES],
 };

@@ -4,7 +4,8 @@
  * Google service is called by the app).
  */
 import type { DeliveryDecision } from './decide.ts';
-import type { PointCandidate } from './match.ts';
+import type { PointType } from '../couriers/points.ts';
+import { DEFAULT_POINT_TYPES, type PointCandidate } from './match.ts';
 import type { DetectionInput } from './signals.ts';
 
 const CARRIER_BG = { econt: 'Еконт', speedy: 'Спиди' } as const;
@@ -42,9 +43,13 @@ export type ScriptDecision = Pick<DeliveryDecision, 'rule' | 'carrier' | 'delive
 export function callScript(
   decision: ScriptDecision,
   orderRefs: string,
-  options: { shopName?: string; address?: string } = {},
+  options: { shopName?: string; address?: string; pointTypes?: PointType[] } = {},
 ): string {
   const shop = options.shopName ?? 'HappyHome';
+  // "офис или автомат" only if the shop ships to lockers (settings.point_types).
+  const points = (options.pointTypes ?? DEFAULT_POINT_TYPES).includes('locker')
+    ? 'офис или автомат'
+    : 'офис';
   const hello = `Здравейте, обаждам се от ${shop} за поръчка ${orderRefs}.`;
   const s = decision.suggestion;
   const pointOf = (p: NonNullable<typeof s>) =>
@@ -53,17 +58,17 @@ export function callScript(
   if (decision.rule === 'F') {
     const code = decision.reasons[0]?.code;
     if (code === 'other_courier') {
-      return `${hello} Изпращаме само с Еконт и Спиди. До кой офис или автомат на Еконт или Спиди да изпратим пратката, или до личен адрес?`;
+      return `${hello} Изпращаме само с Еконт и Спиди. До кой ${points} на Еконт или Спиди да изпратим пратката, или до личен адрес?`;
     }
     return `${hello} Можете ли да ми кажете точния адрес за доставка: град, улица и номер? Удобен ли ви е офис на Еконт или Спиди наблизо?`;
   }
   if (decision.deliveryType === 'address' && !s) {
     const where = options.address ? `: ${options.address}` : '';
-    return `${hello} Да изпратим ли пратката до вашия адрес${where}? Или предпочитате офис или автомат на Еконт или Спиди?`;
+    return `${hello} Да изпратим ли пратката до вашия адрес${where}? Или предпочитате ${points} на Еконт или Спиди?`;
   }
   if (s) {
     return `${hello} Къде да изпратим пратката — до ${pointOf(s)} или до личен адрес?`;
   }
   const carrier = decision.carrier ? ` на ${CARRIER_BG[decision.carrier]}` : '';
-  return `${hello} До кой офис или автомат${carrier} да изпратим пратката, или до личен адрес?`;
+  return `${hello} До кой ${points}${carrier} да изпратим пратката, или до личен адрес?`;
 }

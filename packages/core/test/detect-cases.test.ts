@@ -1,6 +1,9 @@
 /**
  * Phase 5 detection, table-driven (T5-01 … T5-08) on real office data. Each case: what the
  * customer wrote → rule, certainty, courier, type, office (or suggestion) and the main reason.
+ *
+ * The table runs with every point type allowed (the Phase 5 spec). The owner's setting since
+ * 14 Nov 2026 is offices only (settings.point_types): see the "offices only" block at the end.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -8,8 +11,10 @@ import {
   detectDelivery,
   type DeliveryDecision,
   type DetectionRule,
+  type DetectionSettings,
   type GeoPoint,
 } from '../src/detect/decide.ts';
+import { callScript } from '../src/detect/call.ts';
 import type { DetectionInput } from '../src/detect/signals.ts';
 import { fakeDeps, northOf, pointById } from './detect-fixtures.ts';
 
@@ -38,6 +43,12 @@ const trakia148 = pointById('speedy', '608');
 const kapana = pointById('econt', '4064');
 const mladost1 = pointById('econt', '1056');
 const aytos = pointById('speedy', '190');
+
+/** The Phase 5 spec: offices, lockers and mobile offices. */
+const ALL_TYPES: DetectionSettings = {
+  ...DEFAULT_DETECTION_SETTINGS,
+  pointTypes: ['office', 'locker', 'mobile'],
+};
 
 const CASES: Case[] = [
   // --- A: courier + exactly one office / locker -----------------------------------------
@@ -419,15 +430,17 @@ const CASES: Case[] = [
     },
   },
   {
-    name: 'T5-07: nearest at 1.5 km (range 1 km) → home address',
+    // Owner's "middle way" (14 Nov 2026): no office within range + a complete street address
+    // found beyond the town → certain, to the address (P5-14 said "uncertain").
+    name: 'T5-07: nearest at 1.5 km (range 1 km) → home address, certain',
     input: { address1: 'ул. Славянска 9', city: 'Айтос' },
     geo: { 'ул. Славянска 9': northOf(aytos, 1.5) },
     expect: {
       rule: 'E',
-      certainty: 'uncertain',
+      certainty: 'certain',
       type: 'address',
       suggestion: null,
-      reason: 'no_point_in_range',
+      reason: 'no_point_in_range_home',
     },
   },
   {
@@ -553,7 +566,7 @@ describe('T5-01: detection cases from Appendix B and real offices', () => {
   });
 
   it.each(CASES)('$name', async ({ input, geo, expect: want }) => {
-    const out = await detectDelivery(input, fakeDeps(geo), DEFAULT_DETECTION_SETTINGS);
+    const out = await detectDelivery(input, fakeDeps(geo), ALL_TYPES);
     expect(out.kind).toBe('decided');
     if (out.kind !== 'decided') return;
     const d = out.decision;
@@ -611,7 +624,11 @@ describe('T5-03: the Appendix B examples resolve to the right point and type', (
     };
   };
   const decide = async (address1: string) => {
-    const out = await detectDelivery({ address1, city: 'Пловдив', zip: '4000' }, withTestOffice());
+    const out = await detectDelivery(
+      { address1, city: 'Пловдив', zip: '4000' },
+      withTestOffice(),
+      ALL_TYPES,
+    );
     if (out.kind !== 'decided') throw new Error('busy');
     return out.decision;
   };
@@ -690,5 +707,139 @@ describe('geocoder busy / only when needed', () => {
       await detectDelivery(input, deps);
       expect(deps.geocoded).toEqual([]);
     }
+  });
+});
+
+describe('offices only (owner, 14 Nov 2026: big parcels, settings.point_types = office)', () => {
+  const decide = async (input: DetectionInput, geo: Record<string, GeoPoint | null> = {}) => {
+    const out = await detectDelivery(input, fakeDeps(geo), DEFAULT_DETECTION_SETTINGS);
+    if (out.kind !== 'decided') throw new Error('busy');
+    return out.decision;
+  };
+  const codes = (d: DeliveryDecision) => d.reasons.map((r) => r.code);
+  const onlyOffices = (d: DeliveryDecision) =>
+    [d.point, d.suggestion, ...d.alternatives].every((p) => !p || p.type === 'office');
+
+  it('is the default', () => {
+    expect(DEFAULT_DETECTION_SETTINGS.pointTypes).toEqual(['office']);
+  });
+
+  it.each([
+    ['Еконтомат Тракия', 'econt'],
+    ['Спиди автомат Кауфланд Тракия', 'speedy'],
+    ['Speedy автомат 9145', 'speedy'],
+  ])('"%s": the locker is recognised, a nearby %s office is suggested', async (text, carrier) => {
+    const d = await decide({ address1: text, city: 'Пловдив', zip: '4000' });
+    expect([d.rule, d.certainty, d.carrier, d.deliveryType]).toEqual([
+      'C',
+      'uncertain',
+      carrier,
+      'office',
+    ]);
+    expect(codes(d)).toContain('point_type_not_used');
+    expect(codes(d)).toContain('suggest_near_named');
+    expect(d.suggestion?.type).toBe('office');
+    expect(d.suggestion?.carrier).toBe(carrier);
+    expect(onlyOffices(d)).toBe(true);
+    expect(d.reasons[0]!.bg).toMatch(/не изпращаме до автомати/);
+  });
+
+  it('"Спиди автомат" alone: the courier is clear, an office is suggested, not a locker', async () => {
+    const d = await decide(
+      { address1: 'Спиди автомат', city: 'Пловдив' },
+      { 'Спиди автомат': northOf(trakia148, 0.3) },
+    );
+    expect([d.rule, d.certainty, d.carrier, d.deliveryType]).toEqual([
+      'C',
+      'uncertain',
+      'speedy',
+      'office',
+    ]);
+    expect(codes(d)).toEqual(expect.arrayContaining(['point_unclear', 'locker_not_used']));
+    expect(d.suggestion?.type).toBe('office');
+    expect(onlyOffices(d)).toBe(true);
+  });
+
+  it('a locker named without a courier: an office near it is suggested', async () => {
+    const d = await decide({ address1: 'до автомат Кауфланд Тракия', city: 'Пловдив' });
+    expect([d.rule, d.certainty, d.deliveryType]).toEqual(['C', 'uncertain', 'office']);
+    expect(codes(d)[0]).toBe('point_type_not_used');
+    expect(onlyOffices(d)).toBe(true);
+  });
+
+  it('an office named clearly is still certain (rule A)', async () => {
+    const d = await decide({ address1: 'Еконт офис Капана', city: 'Пловдив' });
+    expect([d.rule, d.certainty, d.deliveryType, d.point?.id]).toEqual([
+      'A',
+      'certain',
+      'office',
+      kapana.id,
+    ]);
+  });
+
+  it('rule E ignores lockers: a locker 0.1 km away does not count, the office does', async () => {
+    const locker = pointById('econt', '4068');
+    const d = await decide(
+      { address1: 'ул. Тестова 3', city: 'Пловдив' },
+      { 'ул. Тестова 3': northOf(locker as Required<typeof locker>, 0.1) },
+    );
+    expect(d.rule).toBe('E');
+    expect(onlyOffices(d)).toBe(true);
+    if (d.suggestion) {
+      expect(d.certainty).toBe('uncertain');
+      expect(d.suggestion.type).toBe('office');
+    } else {
+      // No office within 1 km of that spot: the owner's middle way sends it to the address.
+      expect([d.certainty, d.deliveryType]).toEqual(['certain', 'address']);
+    }
+  });
+
+  it('middle way: no office within range → certain to the address only when complete and found', async () => {
+    const far = { lat: 42.9, lng: 25.1 };
+    const street = await decide(
+      { address1: 'ул. Дълга 7', city: 'Малко село' },
+      { 'ул. Дълга 7': { ...far, precision: 'street' } },
+    );
+    expect([street.rule, street.certainty, street.deliveryType]).toEqual([
+      'E',
+      'certain',
+      'address',
+    ]);
+    expect(codes(street)).toEqual(['no_point_in_range_home', 'home_carrier_later']);
+    expect(street.reasons[0]!.bg).toBe('Няма офис до 1 км, адресът е пълен — изпращаме до адреса.');
+
+    // Only the town found: the distance means nothing → still a call.
+    const town = await decide(
+      { address1: 'ул. Дълга 8', city: 'Малко село' },
+      { 'ул. Дълга 8': { ...far, precision: 'city' } },
+    );
+    expect([town.certainty, town.deliveryType]).toEqual(['uncertain', 'address']);
+
+    // No number: not complete → a call, and the reason says why.
+    const noNumber = await decide(
+      { address1: 'ул. Дълга', city: 'Малко село' },
+      { 'ул. Дълга': { ...far, precision: 'street' } },
+    );
+    expect(noNumber.certainty).toBe('uncertain');
+    expect(codes(noNumber)).toEqual(['no_point_in_range', 'address_incomplete']);
+
+    // The customer asked for an office (none near): never sent home without a call.
+    const askedOffice = await decide(
+      { address1: 'до офис, ул. Дълга 9', city: 'Малко село' },
+      { 'до офис, ул. Дълга 9': { ...far, precision: 'street' } },
+    );
+    expect(askedOffice.certainty).toBe('uncertain');
+  });
+
+  it('the call script says "офис", not "офис или автомат"', async () => {
+    const d = await decide({ address1: 'Спиди', city: 'Пловдив' });
+    const script = callScript({ ...d, suggestion: null, deliveryType: null }, '#2008');
+    expect(script).toMatch(/До кой офис на Спиди/);
+    expect(script).not.toMatch(/автомат/);
+    expect(
+      callScript({ ...d, suggestion: null, deliveryType: null }, '#2008', {
+        pointTypes: ['office', 'locker'],
+      }),
+    ).toMatch(/офис или автомат/);
   });
 });

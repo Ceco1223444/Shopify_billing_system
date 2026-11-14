@@ -4,11 +4,25 @@
  *
  * Pure apart from the injected lookups (offices of a town, offices by code, geocoder, nearest
  * offices), so every rule is tested with in-memory data. The Edge Function passes the real ones.
+ *
+ * Owner's changes of 14 Nov 2026:
+ *  - settings.point_types (default: offices only). Lockers and mobile offices the customer names
+ *    are still recognised, so the reason can say why the app asks, but the app never decides,
+ *    suggests or offers a point of a type the shop does not ship to.
+ *  - Rule E "middle way": nothing mentioned, no office within range, and a complete street
+ *    address found on the map (not only the town) → certain, delivery to the address.
  */
 import type { SupportedCarrier } from '../domain.ts';
 import { isBulgaria } from '../geo/address.ts';
 import { mergeDictionary, type DetectionDictionary } from './dictionary.ts';
-import { pickMatch, scorePoints, type PointCandidate, type ScoredPoint } from './match.ts';
+import {
+  DEFAULT_POINT_TYPES,
+  pickMatch,
+  scorePoints,
+  type PointCandidate,
+  type ScoredPoint,
+} from './match.ts';
+import type { PointType } from '../couriers/points.ts';
 import { analyze, type DetectionInput, type PointWord, type Signals } from './signals.ts';
 
 export type Certainty = 'certain' | 'uncertain' | 'error';
@@ -32,12 +46,15 @@ export interface DetectionSettings {
   officeRangeKm: number;
   /** settings.home_carrier_tie_break. */
   homeCarrierTieBreak: SupportedCarrier;
+  /** settings.point_types: the kinds of points the shop ships to. Never empty. */
+  pointTypes: PointType[];
   dictionary: DetectionDictionary;
 }
 
 export const DEFAULT_DETECTION_SETTINGS: DetectionSettings = {
   officeRangeKm: 1,
   homeCarrierTieBreak: 'econt',
+  pointTypes: [...DEFAULT_POINT_TYPES],
   dictionary: mergeDictionary(null),
 };
 
@@ -119,6 +136,28 @@ const typesFor = (words: PointWord[]): PointCandidate['type'][] =>
 const deliveryTypeOf = (p: PointCandidate): DeliveryType =>
   p.type === 'locker' ? 'locker' : 'office';
 
+const KIND: Record<PointType, { bg: string; en: string; bgMany: string; enMany: string }> = {
+  office: { bg: 'офис', en: 'an office', bgMany: 'офиси', enMany: 'offices' },
+  locker: { bg: 'автомат', en: 'a locker', bgMany: 'автомати', enMany: 'lockers' },
+  mobile: {
+    bg: 'подвижен офис',
+    en: 'a mobile office',
+    bgMany: 'подвижни офиси',
+    enMany: 'mobile offices',
+  },
+};
+
+/** "офис" or "офис или автомат": the points the shop ships to, for the reasons. */
+export function pointsWord(types: PointType[], lang: 'bg' | 'en'): string {
+  return types.includes('locker')
+    ? lang === 'bg'
+      ? 'офис или автомат'
+      : 'office or locker'
+    : lang === 'bg'
+      ? 'офис'
+      : 'office';
+}
+
 /**
  * P5-16: nearest first; points of the other courier within 200 m of it are offered too. On an
  * exact tie (same 10 m) the cheaper one would win (Phase 7 prices), then the tie-break courier.
@@ -171,6 +210,22 @@ export async function detectDelivery(
   };
   /** Set when the named kind (office / locker) differs from the best match's kind. */
   let kindMismatch: PointCandidate | null = null;
+  /** The point the customer named, of a type the shop does not ship to (settings.point_types). */
+  const named = { notUsed: null as PointCandidate | null };
+  const allowed = (p: PointCandidate) => settings.pointTypes.includes(p.type);
+  /** What to look for when suggesting: the named kind if the shop ships to it, else its types. */
+  const usableTypes = (words: PointWord[]): PointType[] => {
+    const kinds = typesFor(words).filter((t) => settings.pointTypes.includes(t));
+    return kinds.length ? kinds : settings.pointTypes;
+  };
+  const lockerNotUsed = (words: PointWord[]) =>
+    words.includes('locker') && !settings.pointTypes.includes('locker');
+  const notUsedReason = (p: PointCandidate) =>
+    reason(
+      'point_type_not_used',
+      `Клиентът иска ${KIND[p.type].bg} (${pointLabel(p, 'bg')}), но не изпращаме до ${KIND[p.type].bgMany}.`,
+      `The customer asks for ${KIND[p.type].en} (${pointLabel(p, 'en')}), but we do not ship to ${KIND[p.type].enMany}.`,
+    );
   const decided = (d: Omit<DeliveryDecision, 'typo'> & { typo?: boolean }): DetectionOutcome => ({
     kind: 'decided',
     decision: { typo: signals.typo, ...d },
@@ -292,15 +347,27 @@ export async function detectDelivery(
         match.kind === 'match' ? [match.point] : match.best.map((s) => s.point),
       );
 
-    // C: the courier is clear, the office is not.
+    // C: the courier is clear, the office is not (or it is a point we do not ship to).
     const kind = kindWord(signals.pointWords);
-    const reasons = [
-      reason(
-        'point_unclear',
-        `Посочен е ${CARRIER[carrier].bg}, но ${kind.bg} не е ясен.`,
-        `${CARRIER[carrier].en} is mentioned, but the ${kind.en} is not clear.`,
-      ),
-    ];
+    const notUsed = named.notUsed;
+    const reasons = notUsed
+      ? [notUsedReason(notUsed)]
+      : [
+          reason(
+            'point_unclear',
+            `Посочен е ${CARRIER[carrier].bg}, но ${kind.bg} не е ясен.`,
+            `${CARRIER[carrier].en} is mentioned, but the ${kind.en} is not clear.`,
+          ),
+        ];
+    if (!notUsed && lockerNotUsed(signals.pointWords)) {
+      reasons.push(
+        reason(
+          'locker_not_used',
+          'Не изпращаме до автомати: предложен е офис.',
+          'We do not ship to lockers: an office is suggested.',
+        ),
+      );
+    }
     if (kindMismatch) {
       const m: PointCandidate = kindMismatch;
       const named =
@@ -331,11 +398,9 @@ export async function detectDelivery(
         ),
       );
     }
-    const suggestion = await suggestFor(
-      carrier,
-      signals.pointWords,
-      match.kind === 'match' ? [] : match.best,
-    );
+    const suggestion =
+      (notUsed && (await nearNamed(notUsed, carrier))) ||
+      (await suggestFor(carrier, signals.pointWords, match.kind === 'match' ? [] : match.best));
     if (suggestion === 'busy') return { kind: 'busy' };
     return decided({
       ...base,
@@ -344,7 +409,9 @@ export async function detectDelivery(
       carrier,
       deliveryType: suggestion.point
         ? deliveryTypeOf(suggestion.point)
-        : signals.pointWords.length === 1 && signals.pointWords[0] === 'locker'
+        : signals.pointWords.length === 1 &&
+            signals.pointWords[0] === 'locker' &&
+            settings.pointTypes.includes('locker')
           ? 'locker'
           : 'office',
       suggestion: suggestion.point,
@@ -411,7 +478,21 @@ export async function detectDelivery(
   if (signals.pointWords.length) {
     const scored = scorePoints(signals.remaining, townPoints, city, settings.dictionary);
     const match = pickMatch(scored, signals.pointWords);
-    if (match.kind === 'match') {
+    if (match.kind === 'match' && !allowed(match.point)) {
+      const near = await nearNamed(match.point, null);
+      if (near) {
+        return decided({
+          ...base,
+          rule: 'C',
+          certainty: 'uncertain',
+          carrier: near.point.carrier,
+          deliveryType: deliveryTypeOf(near.point),
+          suggestion: near.point,
+          alternatives: near.alternatives,
+          reasons: [notUsedReason(match.point), ...near.reasons],
+        });
+      }
+    } else if (match.kind === 'match') {
       return decided({
         ...base,
         rule: 'C',
@@ -454,7 +535,7 @@ export async function detectDelivery(
   }
   const near = orderSuggestions(
     await deps.nearestPoints(geo, {
-      types: typesFor(signals.pointWords),
+      types: usableTypes(signals.pointWords),
       maxKm: settings.officeRangeKm,
       limit: 5,
     }),
@@ -462,7 +543,53 @@ export async function detectDelivery(
   );
   const first = near[0];
   const range = formatKm(settings.officeRangeKm, 'bg');
+  const rangeEn = formatKm(settings.officeRangeKm, 'en');
+  const word = pointsWord(settings.pointTypes, 'bg');
+  const wordEn = pointsWord(settings.pointTypes, 'en');
   if (!first) {
+    // Owner's "middle way" (14 Nov 2026): nothing asked for, no office near, and a complete
+    // street address that the map found (not only the town) → send it to the address.
+    if (!signals.pointWords.length && signals.streetAddress && geo.precision !== 'city') {
+      return decided({
+        ...base,
+        rule: 'E',
+        certainty: 'certain',
+        carrier: settings.homeCarrierTieBreak,
+        deliveryType: 'address',
+        geo,
+        hints,
+        reasons: [
+          reason(
+            'no_point_in_range_home',
+            `Няма ${word} до ${range}, адресът е пълен — изпращаме до адреса.`,
+            `No ${wordEn} within ${rangeEn}, and the address is complete — it goes to the address.`,
+          ),
+          reason(
+            'home_carrier_later',
+            `Куриерът ще се избере по цена; засега: ${CARRIER[settings.homeCarrierTieBreak].bg}.`,
+            `The courier will be chosen by price; for now: ${CARRIER[settings.homeCarrierTieBreak].en}.`,
+          ),
+        ],
+      });
+    }
+    const why: Reason[] = [];
+    if (signals.pointWords.length) {
+      why.push(
+        reason(
+          'point_named_none_near',
+          `Клиентът пише ${pointsWord(['office', 'locker'], 'bg')}, но такъв не е намерен.`,
+          `The customer writes ${pointsWord(['office', 'locker'], 'en')}, but none was found.`,
+        ),
+      );
+    } else if (!signals.streetAddress) {
+      why.push(
+        reason(
+          'address_incomplete',
+          'Адресът е непълен (липсва улица или номер).',
+          'The address is incomplete (no street or number).',
+        ),
+      );
+    }
     return decided({
       ...base,
       rule: 'E',
@@ -474,9 +601,10 @@ export async function detectDelivery(
       reasons: [
         reason(
           'no_point_in_range',
-          `Няма офис или автомат до ${range} — предложен е личен адрес.`,
-          `No office or locker within ${formatKm(settings.officeRangeKm, 'en')} — delivery to the address is suggested.`,
+          `Няма ${word} до ${range} — предложен е личен адрес.`,
+          `No ${wordEn} within ${rangeEn} — delivery to the address is suggested.`,
         ),
+        ...why,
       ],
     });
   }
@@ -516,7 +644,7 @@ export async function detectDelivery(
         (p) => p.carrier === c && inTown.has(p.id),
       );
       if (byCode.length === 1)
-        return kindChecked({ kind: 'match', point: byCode[0]!, score: 1, by: 'code' });
+        return usable(kindChecked({ kind: 'match', point: byCode[0]!, score: 1, by: 'code' }));
     }
     const scored = scorePoints(
       signals.remaining,
@@ -525,7 +653,57 @@ export async function detectDelivery(
       settings.dictionary,
     );
     const picked = pickMatch(scored, signals.pointWords);
-    return picked.kind === 'match' ? kindChecked(picked, scored) : picked;
+    return picked.kind === 'match' ? usable(kindChecked(picked, scored)) : picked;
+  }
+
+  /** A clear match of a type the shop does not ship to is remembered and not decided on. */
+  function usable<
+    M extends
+      | { kind: 'match'; point: PointCandidate; score: number; by: 'name' | 'code' }
+      | { kind: 'ambiguous'; best: ScoredPoint[] },
+  >(m: M): M | { kind: 'none'; best: ScoredPoint[] } {
+    if (m.kind !== 'match' || allowed(m.point)) return m;
+    named.notUsed = m.point;
+    return { kind: 'none', best: [] };
+  }
+
+  /** The nearest points the shop ships to around a point the customer named (same courier). */
+  async function nearNamed(
+    p: PointCandidate,
+    c: SupportedCarrier | null,
+  ): Promise<{
+    point: PointCandidate;
+    alternatives: PointCandidate[];
+    reasons: Reason[];
+    geo: GeoPoint | null;
+  } | null> {
+    if (p.lat == null || p.lng == null) return null;
+    const near = orderSuggestions(
+      await deps.nearestPoints(
+        { lat: p.lat, lng: p.lng },
+        {
+          carriers: c ? [c] : undefined,
+          types: settings.pointTypes,
+          maxKm: RULE_C_SEARCH_KM,
+          limit: 5,
+        },
+      ),
+      settings.homeCarrierTieBreak,
+    );
+    const first = near[0];
+    if (!first) return null;
+    return {
+      point: first,
+      alternatives: near.slice(1),
+      geo: null,
+      reasons: [
+        reason(
+          'suggest_near_named',
+          `Предложен е най-близкият ${KIND[first.type].bg} до него: ${pointLabel(first, 'bg')}, ${formatKm(first.distance_km ?? 0, 'bg')}.`,
+          `Suggested: the nearest ${first.type === 'office' ? 'office' : KIND[first.type].en} to it, ${pointLabel(first, 'en')}, ${formatKm(first.distance_km ?? 0, 'en')}.`,
+        ),
+      ],
+    };
   }
 
   /**
@@ -566,7 +744,7 @@ export async function detectDelivery(
       const near = orderSuggestions(
         await deps.nearestPoints(geo, {
           carriers: c ? [c] : undefined,
-          types: typesFor(words),
+          types: usableTypes(words),
           maxKm: c ? RULE_C_SEARCH_KM : settings.officeRangeKm,
           limit: 5,
         }),
@@ -589,7 +767,7 @@ export async function detectDelivery(
       }
     }
     const top = best
-      .filter((s) => s.score >= BEST_MATCH_MIN_SCORE && typesFor(words).includes(s.point.type))
+      .filter((s) => s.score >= BEST_MATCH_MIN_SCORE && usableTypes(words).includes(s.point.type))
       .slice(0, 3)
       .map((s) => s.point);
     if (top[0]) {

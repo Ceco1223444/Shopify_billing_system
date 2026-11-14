@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../components/Icon';
 import { currentLocale } from '../i18n';
+import { usePointTypes } from '../lib/settings';
 import { fetchPointsInCity, searchPoints, type MapPoint } from '../offices/data';
 import type { OrderDetail, ShipmentRow } from './data';
 import {
@@ -80,6 +81,8 @@ function PointPicker({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  // Only the kinds of points the shop ships to (owner, 14 Nov 2026: offices only).
+  const types = usePointTypes();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<MapPoint[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -87,7 +90,7 @@ function PointPicker({
   useEffect(() => {
     let cancelled = false;
     if (!city) return;
-    fetchPointsInCity(city)
+    fetchPointsInCity(city, types)
       .then((points) => {
         if (!cancelled) setResults(points.slice(0, 40));
       })
@@ -97,13 +100,13 @@ function PointPicker({
     return () => {
       cancelled = true;
     };
-  }, [city]);
+  }, [city, types]);
 
   const search = async () => {
     if (!query.trim()) return;
     setFailed(false);
     try {
-      setResults(await searchPoints(query.trim()));
+      setResults(await searchPoints(query.trim(), types));
     } catch {
       setFailed(true);
     }
@@ -277,8 +280,11 @@ export function DeliveryCard({
   const manual = isManualDelivery(s);
   const tel = telHref(s.recipient_phone_norm);
   const decision = scriptDecisionOf(s);
+  const pointTypes = usePointTypes();
   const refs = orders.map((o) => o.name).join(lang === 'bg' ? ' и ' : ' and ');
-  const script = decision ? callScript(decision, refs, { address: addressText(inputOf(s)) }) : null;
+  const script = decision
+    ? callScript(decision, refs, { address: addressText(inputOf(s)), pointTypes })
+    : null;
   const links = s.delivery_rule === 'F' ? addressLinks(inputOf(s)) : null;
   const noAnswers = calls.filter((c) => c.outcome === 'no_answer');
   const methods = [

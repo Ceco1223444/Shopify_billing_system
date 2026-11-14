@@ -355,12 +355,18 @@ describe('calls (owner and packers)', () => {
       p_zip: '4000',
     });
     await runDetection(jobDeps(), { budgetMs: 20_000 }); // all pending
-    expect(await overview(shipmentOf.e)).toMatchObject({
-      delivery_rule: 'A',
-      delivery_type: 'locker',
-      office_id: officeId['econt-4068'],
+    // Offices only (settings.point_types, owner 14 Nov 2026): the locker is recognised, but the
+    // decision is a call with the nearest Econt office suggested, never the locker.
+    const s = await overview(shipmentOf.e);
+    expect(s).toMatchObject({
+      delivery_rule: 'C',
+      delivery_certainty: 'uncertain',
+      delivery_type: 'office',
+      office_id: null,
       delivery_dirty: false,
     });
+    expect((s.delivery_suggestion as { id: string }).id).toBe(officeId['econt-4064']);
+    expect((s.delivery_reasons as { code: string }[])[0]!.code).toBe('point_type_not_used');
   });
 
   it('"Друг офис" (the picker) on an error, and "Личен адрес"', async () => {

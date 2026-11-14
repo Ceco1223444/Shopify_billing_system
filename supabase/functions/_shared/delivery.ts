@@ -7,6 +7,7 @@
 import {
   detectDelivery,
   mergeDictionary,
+  pointTypesOf,
   type DeliveryDecision,
   type DetectionDeps,
   type DetectionInput,
@@ -64,9 +65,11 @@ export async function loadDetectionSettings(db: Db): Promise<DetectionSettings> 
   const range = Number(await setting<number>('office_range_km', 1));
   const tie = await setting<SupportedCarrier>('home_carrier_tie_break', 'econt');
   const words = await setting<DictionaryAdditions>('detection_dictionary', {});
+  const types = await setting<unknown>('point_types', null);
   return {
     officeRangeKm: Number.isFinite(range) && range > 0 ? range : 1,
     homeCarrierTieBreak: tie === 'speedy' ? 'speedy' : 'econt',
+    pointTypes: pointTypesOf(types),
     dictionary: mergeDictionary(words),
   };
 }

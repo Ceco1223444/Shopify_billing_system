@@ -1,5 +1,7 @@
 import type { Json } from '@happyhome/core';
-import { useCallback, useEffect, useState } from 'react';
+import type { PointType } from '@happyhome/core/couriers';
+import { pointTypesOf } from '@happyhome/core/detect';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 
 /** A stored setting value (the column is NOT NULL). */
@@ -48,4 +50,14 @@ export function useSettings() {
   }, []);
 
   return { values, error, reload, save };
+}
+
+/**
+ * settings.point_types: the kinds of courier points the shop ships to (owner, 14 Nov 2026:
+ * offices only). Offices only while the settings load.
+ */
+export function usePointTypes(): PointType[] {
+  const { values } = useSettings();
+  const stored = values?.point_types;
+  return useMemo(() => pointTypesOf(stored), [stored]);
 }

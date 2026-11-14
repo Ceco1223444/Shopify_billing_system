@@ -1,9 +1,11 @@
 import { formatDateTime, type SupportedCarrier } from '@happyhome/core';
+import type { PointType } from '@happyhome/core/couriers';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMember } from '../auth/AuthProvider';
 import { Icon } from '../components/Icon';
 import { currentLocale } from '../i18n';
+import { usePointTypes } from '../lib/settings';
 import {
   fetchPointsInCity,
   searchPoints,
@@ -44,6 +46,8 @@ export function OfficesPage() {
 function OwnerOffices() {
   const { t } = useTranslation();
   const overview = useOfficeOverview();
+  const types = usePointTypes();
+  const allTypes = types.includes('locker') && types.includes('mobile');
   const [refresh, setRefresh] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle');
   const [city, setCity] = useState<string>(QUICK_CITIES[0]!);
 
@@ -63,6 +67,11 @@ function OwnerOffices() {
     <section>
       <h1>{t('pages.offices.title')}</h1>
       <p>{t('pages.offices.intro')}</p>
+      {!allTypes && (
+        <p className="badge badge-info" data-testid="offices-only">
+          <Icon name="info" /> {t('offices.onlyOffices')}
+        </p>
+      )}
 
       <div className="row wrap">
         <button
@@ -99,6 +108,7 @@ function OwnerOffices() {
               key={carrier}
               carrier={carrier}
               counts={counts[carrier]}
+              types={types}
               state={carrierSyncState(overview.runs ?? [], carrier)}
             />
           ))}
@@ -111,8 +121,8 @@ function OwnerOffices() {
         )
       )}
 
-      <CityMap city={city} onCity={setCity} />
-      <PointSearch onShowCity={setCity} />
+      <CityMap city={city} onCity={setCity} types={types} />
+      <PointSearch onShowCity={setCity} types={types} />
     </section>
   );
 }
@@ -120,10 +130,12 @@ function OwnerOffices() {
 function CarrierCard({
   carrier,
   counts,
+  types,
   state,
 }: {
   carrier: SupportedCarrier;
   counts: CarrierCounts;
+  types: PointType[];
   state: CarrierSyncState;
 }) {
   const { t } = useTranslation();
@@ -132,6 +144,8 @@ function CarrierCard({
   const badge = { running: 'badge-info', failed: 'badge-error', ok: 'badge-ok' } as const;
   const icon = { running: 'wait', failed: 'error', ok: 'ok' } as const;
   const lastOkAt = state.lastOk?.finished_at ?? null;
+  const unused =
+    (types.includes('locker') ? 0 : counts.locker) + (types.includes('mobile') ? 0 : counts.mobile);
 
   return (
     <div className="card" data-testid={`offices-card-${carrier}`}>
@@ -143,8 +157,15 @@ function CarrierCard({
       )}
       <ul className="plain-list" data-testid={`offices-counts-${carrier}`}>
         <li>{t('offices.count.office', { count: counts.office })}</li>
-        <li>{t('offices.count.locker', { count: counts.locker })}</li>
-        {counts.mobile > 0 && <li>{t('offices.count.mobile', { count: counts.mobile })}</li>}
+        {types.includes('locker') && <li>{t('offices.count.locker', { count: counts.locker })}</li>}
+        {types.includes('mobile') && counts.mobile > 0 && (
+          <li>{t('offices.count.mobile', { count: counts.mobile })}</li>
+        )}
+        {unused > 0 && (
+          <li className="muted" data-testid={`offices-unused-${carrier}`}>
+            {t('offices.count.notUsed', { count: unused })}
+          </li>
+        )}
       </ul>
       <p>{t('offices.withCoords', { count: counts.withCoords, total: counts.active })}</p>
       {counts.inactive > 0 && (
@@ -184,7 +205,15 @@ function CarrierCard({
 
 type Loaded = { city: string; points: MapPoint[] } | { city: string; error: true } | null;
 
-function CityMap({ city, onCity }: { city: string; onCity: (city: string) => void }) {
+function CityMap({
+  city,
+  onCity,
+  types,
+}: {
+  city: string;
+  onCity: (city: string) => void;
+  types: PointType[];
+}) {
   const { t } = useTranslation();
   const [input, setInput] = useState(city);
   const [shownCity, setShownCity] = useState(city);
@@ -197,7 +226,7 @@ function CityMap({ city, onCity }: { city: string; onCity: (city: string) => voi
 
   useEffect(() => {
     let cancelled = false;
-    fetchPointsInCity(city)
+    fetchPointsInCity(city, types)
       .then((points) => {
         if (!cancelled) setLoaded({ city, points });
       })
@@ -207,7 +236,7 @@ function CityMap({ city, onCity }: { city: string; onCity: (city: string) => voi
     return () => {
       cancelled = true;
     };
-  }, [city]);
+  }, [city, types]);
 
   const letters = useMemo(
     () => ({
@@ -277,7 +306,11 @@ function CityMap({ city, onCity }: { city: string; onCity: (city: string) => voi
           {missing > 0 && <> {t('offices.map.noCoords', { count: missing })}</>}
         </p>
       )}
-      <p className="muted">{t('offices.map.legend')}</p>
+      <p className="muted">
+        {types.length === 1 && types[0] === 'office'
+          ? t('offices.map.legendOffices')
+          : t('offices.map.legend')}
+      </p>
       <OfficeMap
         points={points}
         label={t('offices.map.label', { city: loaded?.city ?? city })}
@@ -335,7 +368,13 @@ function PointTable({
   );
 }
 
-function PointSearch({ onShowCity }: { onShowCity: (city: string) => void }) {
+function PointSearch({
+  onShowCity,
+  types,
+}: {
+  onShowCity: (city: string) => void;
+  types: PointType[];
+}) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<{ query: string; points: MapPoint[] } | null>(null);
@@ -346,7 +385,7 @@ function PointSearch({ onShowCity }: { onShowCity: (city: string) => void }) {
     const q = query.trim();
     if (q.length < 2) return;
     try {
-      setResult({ query: q, points: await searchPoints(q) });
+      setResult({ query: q, points: await searchPoints(q, types) });
       setFailed(false);
     } catch {
       setFailed(true);
