@@ -215,9 +215,11 @@ test.describe('courier offices screen', () => {
       await offlineTiles(page);
       await page.goto('/offices');
       await expect(page.getByTestId('offices-only')).toContainText('само офиси');
-      const econt = page.getByTestId('offices-counts-econt');
-      await expect(econt).toContainText('1 офис');
-      await expect(econt).not.toContainText('1 автомат');
+      // Exactly two lines: the offices, and the points that are not used (no locker count).
+      await expect(page.getByTestId('offices-counts-econt').locator('li')).toHaveText([
+        '1 офис',
+        '1 автомат или подвижен офис (не се използват)',
+      ]);
       await expect(page.getByTestId('offices-unused-econt')).toContainText('не се използват');
 
       // Plovdiv: the two offices only (the Econt locker and the Speedy locker are left out).
