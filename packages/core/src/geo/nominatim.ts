@@ -13,16 +13,36 @@ import { placeSkeleton } from './translit.ts';
 
 export const NOMINATIM_DEFAULT_URL = 'https://nominatim.openstreetmap.org';
 
-/** settings.geocoder */
+export const GEOCODER_PROVIDERS = ['geoapify', 'nominatim'] as const;
+export type GeocoderProvider = (typeof GEOCODER_PROVIDERS)[number];
+
+/**
+ * settings.geocoder. Geoapify is the default since 14 Nov 2026: the public Nominatim refuses
+ * requests from Supabase Edge Functions (see geoapify.ts). Nominatim stays available (another
+ * Nominatim server, or a future desktop app that calls it directly).
+ */
 export interface GeocoderSettings {
-  provider: 'nominatim';
-  /** Base URL of the Nominatim service (public instance or another one). */
+  provider: GeocoderProvider;
+  /** Base URL of the service (Geoapify's geocode API, or a Nominatim server). */
   url: string;
   /** false = never call the geocoder (results already in the cache are still used). */
   enabled: boolean;
-  /** Optional contact e-mail sent with requests (Nominatim asks heavier users for one). */
+  /** Optional contact e-mail sent with Nominatim requests (Nominatim asks heavier users for one). */
   email: string | null;
 }
+
+/** Used only if the setting is missing (the migrations seed it; see SETTINGS_DEFAULTS). */
+export const DEFAULT_GEOCODER_SETTINGS: GeocoderSettings = {
+  provider: 'geoapify',
+  url: 'https://api.geoapify.com/v1/geocode',
+  enabled: true,
+  email: null,
+};
+
+/** The Edge Function secret that holds the API key of providers that need one. */
+export const GEOCODER_KEY_SECRETS: Partial<Record<GeocoderProvider, string>> = {
+  geoapify: 'GEOAPIFY_API_KEY',
+};
 
 /** Identifies the app to Nominatim and Speedy (Nominatim forbids stock HTTP-library User-Agents). */
 export const APP_USER_AGENT = 'HappyHome-Shipping-Hub/1.0 (small-shop delivery tool)';

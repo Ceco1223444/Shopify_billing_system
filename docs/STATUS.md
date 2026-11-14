@@ -1,15 +1,15 @@
 # HappyHome Shipping Hub — status
 
-Last updated: 14 Nov 2026, after **Phase 5 — Delivery point detection and certainty**.
+Last updated: 14 Nov 2026, after **Phase 5 — Delivery point detection and certainty** and its hosted set-up (Geoapify instead of Nominatim, see "Phase 5 on the hosted project").
 Phase prompts: `docs/shipping-hub-build-prompts.md` (the resume prompt mentions `docs/PHASES.md`; that file does not exist, use the prompt pack).
 
 | Phase | State |
 |---|---|
 | 1 Foundation | Done. CI green on GitHub (both jobs, latest: [run 43300056112](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43300056112), after the live-sync fixes). Hosted project `Shopify_billing_system` (`nugmzqjdvmzhitgzhhit`, eu-west-1 Ireland): all 5 migrations pushed 12 Nov 2026. Still to do by the owner: steps 11–14. |
 | 2 Import Shopify CSV batches | Done. CI green on GitHub (both jobs, [run 43324121555](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43324121555)). Hosted (13 Nov 2026): migration `20261113120000_import_batches` pushed and the `import-batch` Edge Function deployed (steps 16–17); advisors show no new warnings. The owner chose to skip the local test and import real exports on the hosted project (step 18). The two brief differences below were accepted by deploying. |
-| 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). **Still to do by the owner:** the hosted migration (step 19). |
-| 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Econt secrets set by the owner (step 23, 14 Nov 2026). **Still to do by the owner:** hosted steps 21, 22, 24, 25. |
-| 5 Delivery point detection | Done. Merged to `main` and tagged `phase-5`, CI green ([run 43547677232](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43547677232)). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. **Still to do by the owner:** hosted steps 26–29. |
+| 3 Build shipments | Done. Merged to `main` and tagged `phase-3` (CI green). Hosted migration pushed (step 19, 14 Nov 2026). **Still to do by the owner:** the check in step 20. |
+| 4 Courier points + geocoding | Done. Merged to `main` and tagged `phase-4`, CI green ([run 43520647629](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43520647629)). Local: 180 core + 29 web + 15 unit tests, 161 integration tests, 20 e2e tests. Hosted (14 Nov 2026): migration pushed, `courier-sync` + `geocode` deployed, Econt secrets set, first "Обнови офисите" done (639 Econt + 1 389 Speedy points, all on the map). **Still to do by the owner:** look at the Plovdiv map (step 25). |
+| 5 Delivery point detection | Done. Merged to `main` and tagged `phase-5`, CI green ([run 43547677232](https://github.com/Ceco1223444/Shopify_billing_system/actions/runs/43547677232)). Local: 333 core + 29 web + 16 unit tests, 182 integration tests, 26 e2e tests. Hosted (14 Nov 2026): migration pushed and `detect-delivery` deployed (steps 26–28); 3 of 17 shipments decided. The other 14 need a map, and the public Nominatim refuses Supabase: **branch `phase-5-hosted-geocoder` switches to Geoapify; still to do by the owner: steps 30–34, then step 29.** |
 | 6–13 | Not started |
 
 ## Setup (15 steps)
@@ -61,7 +61,15 @@ Phase 5 on the hosted project (after the phase is merged; same terminal as step 
 26. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote`. It adds `20261116120000_delivery_detection` (and the Phase 3 / 4 migrations too, if steps 19 / 21 are not done yet). It schedules the 2-minute "delivery-detect-tick" job, and it sets `office_range_km` to 1 and `home_carrier_tie_break` to Econt **only if you never changed them**. Every shipment that is not sent yet is marked "to detect".
 27. `pnpm exec supabase functions deploy detect-delivery --yes`.
 28. Log in as the owner and open **Пратки**. If step 24 (Обнови офисите) is done, the 2-minute job already knows where the functions are. If not, import a file, or open **Настройки → Доставка** and press **Запази** once: either one tells the job. The chips then appear within a few minutes. The first time, each new address takes about 3 seconds (Nominatim's pace), so a hundred shipments take about 5 minutes.
-29. Your check (prompt pack): every shipment in Пратки shows the courier, the type, the office and a chip **Сигурно / Обадете се / Грешка** with the reason. Open an "Обадете се" one: the phone link, the script and the buttons are there. Log in as Мама: the "Обадете се" shipments are in her list too.
+29. Your check (prompt pack): every shipment in Пратки shows the courier, the type, the office and a chip **Сигурно / Обадете се / Грешка** with the reason. Open an "Обадете се" one: the phone link, the script and the buttons are there. Log in as Мама: the "Обадете се" shipments are in her list too. (Do it after steps 30–34: until then the shipments that need a map stay "Проверява се…".)
+
+Geocoder on the hosted project: Geoapify (after branch `phase-5-hosted-geocoder` is merged):
+
+30. Create a free account at https://myprojects.geoapify.com, create a project (any name), and copy its **API key**.
+31. Supabase dashboard → **Edge Functions → Secrets** → add `GEOAPIFY_API_KEY` with that key. Type it there yourself: the key never goes into the code, the database or a log.
+32. `pnpm exec supabase db push --remote --dry-run`, then `pnpm exec supabase db push --remote --yes`. It adds `20261117120000_geocoder_geoapify`: `settings.geocoder` becomes Geoapify (only if you never changed it).
+33. Deploy the three functions that use the geocoder: `pnpm exec supabase functions deploy detect-delivery --yes`, then the same for `geocode` and `courier-sync`.
+34. Your check: within about 2 minutes every shipment in **Пратки** has a chip (no more "Проверява се…"), and the "Доставка" card ends with "Powered by Geoapify · © OpenStreetMap". If they stay grey, the function log says why (for example "GEOAPIFY_API_KEY is not set" or "geoapify answered HTTP 401" = wrong key).
 
 ## What Phase 1 built
 
@@ -292,6 +300,28 @@ When the T5-03 test office "Пловдив Тест" exists, #2002 + #2007 is ru
 
 No sample contradicts the rules, and the thresholds 0.75 / 0.10 gave no clearly wrong match on the test data. Real exports will show more.
 
+## Phase 5 on the hosted project (14 Nov 2026)
+
+What happened after steps 26–28, and what was changed:
+
+- **Every shipment stayed "Проверява се…".** The 2-minute job ran and the function answered 202, but nothing was decided. The function logs showed why, step by step (only error codes, never an address):
+  1. Nominatim answered **HTTP 403 "Access denied"** to every request from the hosted function. From the owner's computer the same request worked (0.2 s).
+  2. A probe through a public header echo showed that **Supabase appends `(variant; SupabaseEdgeRuntime/1.79.1; ref=<project>)` to the User-Agent** of every request a function makes. The app cannot remove it.
+  3. Sent from the owner's computer with that same User-Agent, Nominatim also answers "Access denied". So Nominatim blocks requests from Supabase Edge Functions by their User-Agent, not this app, and not an IP address. Working around a block the service set on purpose would break its usage policy, so the app does not try.
+- **The queue no longer stalls.** Before, the first shipment that needed a map stopped the whole run, every 2 minutes. Now a failing or busy geocoder is asked at most once per run, and the run goes on with the shipments that need no map (an office or locker named by the customer, another courier, …). Result on the hosted data: 3 of 17 shipments decided (rule A, **Сигурно**), 14 waiting for a map.
+- **Error log lines** for the geocoder: HTTP status, time, and the first words of the provider's error page, with URLs, the address and the key removed. A summary line per background run ("detect-delivery done {"applied":3,"busy":14}").
+- **Geoapify instead of Nominatim** (owner's choice, 14 Nov 2026; LocationIQ was the first idea but its free plan allows keeping results for 48 hours only, which breaks P4-25):
+  - `settings.geocoder.provider` is `geoapify` by default (migration `20261117120000_geocoder_geoapify`; a changed setting is kept). Nominatim stays selectable (another Nominatim server, or the desktop app in Phase 12).
+  - Request: `https://api.geoapify.com/v1/geocode/search?text=…&filter=countrycode:bg&lang=bg&limit=1&format=json&apiKey=…`. Same query variants, the same town check, the same 1.2 s spacing and the same cache. Cache entries are per provider.
+  - Geoapify's `result_type` is mapped onto the Phase 4 precision: building / amenity / street → street (block for ж.к. + бл.), suburb / district → quarter, postcode / city → town. County, state, country and unknown are ignored.
+  - The API key is the Edge Function secret `GEOAPIFY_API_KEY`. Without it, nothing is sent, the addresses wait, and the log says so once.
+  - Courier points placed by the geocoder get `coord_source = 'geoapify'`.
+  - The "Доставка" card ends with "Търсене на адреси: Powered by Geoapify · © OpenStreetMap" (the free plan's attribution).
+  - Terms read 14 Nov 2026: free plan 3 000 requests a day and 5 a second, commercial use allowed with that attribution; no limit on keeping results is stated (the docs say batch results may be stored "with no limits"). Geoapify is a company in Cyprus (EU).
+- **Not used yet:** Geoapify's `rank.confidence`. Its answers are fuzzier than Nominatim's, and the town check is the only guard so far. After the first real imports, look at the "Предложение" distances: if a street is found in the wrong place, a confidence threshold is the next step.
+
+Tests: `packages/core/src/geo/geoapify.test.ts` (URL, mapping, precision, town check), `tests/integration/geocode.test.ts` "Geoapify" block (key sent, cache per provider, no key → nothing asked, refusal not cached, town check), and the point-geocoding test now uses Geoapify.
+
 ## Security model (hosted settings: Data API on, auto-expose OFF, auto-RLS ON)
 
 | Role | Gets |
@@ -407,7 +437,8 @@ Phase 5:
 - **Hosted Phase 4 is not set up yet** (steps 21–25). Until the first **Обнови офисите** on the hosted project, the scheduled job knows no function URL and does nothing ("not configured").
 - **Econt production login** is set (14 Nov 2026) but not tested yet: nothing in Phase 4 calls Econt production with a login. It is checked the first time `settings.econt_env` = `production`.
 - **Customer address hit rate not measured yet:** Phase 5 geocodes customer addresses, but only invented samples were used. After the first real import on the hosted project, the share of "Грешка: Адресът не е намерен на картата" shows the real rate.
-- **Phase 5 is not on the hosted project yet** (steps 26–29).
+- **Phase 5 on the hosted project:** steps 26–28 done (14 Nov 2026). Shipments that need a map wait for Geoapify (steps 30–34).
+- Supabase appends `ref=<project ref>` to the User-Agent of every request an Edge Function makes, so Econt, Speedy and Geoapify see the project's ref. The ref is also in the web app's Supabase URL, so this reveals nothing new.
 - The Speedy widget (P4-12) is not used; "Друг офис" uses our own list (`points_in_city`, `search_points`).
 - The map in the admin page puts up to a few hundred markers on one town (Sofia: about 400). They overlap at town zoom; zoom in or use the list below the map.
 

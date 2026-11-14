@@ -438,6 +438,11 @@
     "why": "Защо",
     "manual": "Избрано от човек",
     "shippingMethod": "Начин на доставка от магазина (само за сведение, не се използва): {{method}}",
+    "credit": {
+      "lead": "Търсене на адреси:",
+      "geoapify": "Powered by Geoapify",
+      "osm": "© OpenStreetMap"
+    },
     "links": {
       "maps": "Адресът в Google Maps",
       "search": "Търси адреса в Google"

@@ -50,6 +50,7 @@ export interface SyncJobDeps {
   /** For geocoding points without coordinates; null = skip that part. */
   geocoder?: {
     settings: GeocoderSettings;
+    apiKey?: string | null;
     fetch: typeof fetch;
     sleep?: (ms: number) => Promise<void>;
   } | null;
@@ -182,6 +183,7 @@ export async function geocodePendingPoints(deps: SyncJobDeps, budgetMs: number):
         db: deps.db,
         fetch: deps.geocoder.fetch,
         settings: deps.geocoder.settings,
+        apiKey: deps.geocoder.apiKey ?? null,
         mode: 'bulk',
         maxWaitMs: Math.max(0, budgetMs - (now() - started)),
         // 15 s apart: three queries fit in one call; the answers are cached either way.

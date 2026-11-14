@@ -5,21 +5,23 @@
 //            every 2 minutes from pg_cron); runs in the background unless wait: true
 //   ids      the given shipments now (after a person edits an address); answers with the decisions
 // Callers: members (owner and packers), pg_cron (its token), a service key (scripts, tests).
-// The geocoder keeps Nominatim's pace (1.2 s apart); a busy geocoder leaves the shipment pending.
-// On the local stack the geocoder is off (no test address ever reaches Nominatim).
+// The geocoder (settings.geocoder: Geoapify, key in GEOAPIFY_API_KEY) is called 1.2 s apart at
+// most; a busy or failing geocoder leaves the shipment pending.
+// On the local stack the geocoder is off (no test address ever reaches a real geocoder).
 // Nothing about the customer is logged.
-import { NOMINATIM_DEFAULT_URL, type GeocoderSettings } from '../_shared/core.ts';
+import { DEFAULT_GEOCODER_SETTINGS, type GeocoderSettings } from '../_shared/core.ts';
 import { runDetection, type DeliveryJobDeps } from '../_shared/delivery.ts';
-import { adminClient, CORS, identify, isLocalStack, json } from '../_shared/http.ts';
+import {
+  adminClient,
+  CORS,
+  geocoderApiKey,
+  identify,
+  isLocalStack,
+  json,
+} from '../_shared/http.ts';
 
 const BACKGROUND_BUDGET_MS = 100_000;
 const WAIT_BUDGET_MS = 25_000;
-const FALLBACK_GEOCODER: GeocoderSettings = {
-  provider: 'nominatim',
-  url: NOMINATIM_DEFAULT_URL,
-  enabled: true,
-  email: null,
-};
 
 interface Body {
   action?: 'pending' | 'ids';
@@ -63,14 +65,15 @@ Deno.serve(async (req) => {
   }
 
   const { data: stored } = await admin.rpc('app_setting', { p_key: 'geocoder' });
-  const geocoder = (stored as GeocoderSettings | null) ?? FALLBACK_GEOCODER;
-  // The local stack (tests, CI) never sends addresses to the public Nominatim: there the geocoder
+  const geocoder = (stored as GeocoderSettings | null) ?? DEFAULT_GEOCODER_SETTINGS;
+  // The local stack (tests, CI) never sends addresses to a real geocoder: there the geocoder
   // is off unless GEOCODER_LOCAL=on is set for the local functions.
   const localOff = isLocalStack() && Deno.env.get('GEOCODER_LOCAL') !== 'on';
   const deps: DeliveryJobDeps = {
     db: admin,
     fetch,
     geocoder: localOff ? { ...geocoder, enabled: false } : geocoder,
+    geocoderApiKey: geocoderApiKey(geocoder.provider),
     geocodeMaxWaitMs: action === 'ids' ? 8_000 : 20_000,
   };
 
@@ -90,7 +93,14 @@ Deno.serve(async (req) => {
     }
   }
   EdgeRuntime.waitUntil(
-    work().catch((e) => console.error('detect-delivery failed', e?.code ?? '')),
+    work()
+      .then((done) => {
+        // Counts only: nothing about the customers.
+        const counts: Record<string, number> = {};
+        for (const d of done) counts[d.result] = (counts[d.result] ?? 0) + 1;
+        console.log('detect-delivery done', JSON.stringify(counts));
+      })
+      .catch((e) => console.error('detect-delivery failed', e?.code ?? '')),
   );
   return json(202, { ok: true });
 });

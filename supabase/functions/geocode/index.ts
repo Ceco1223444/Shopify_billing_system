@@ -9,20 +9,14 @@
 //   502 provider_error (Nominatim did not answer).
 // Only the address is sent to Nominatim; nothing is logged.
 import {
-  NOMINATIM_DEFAULT_URL,
+  DEFAULT_GEOCODER_SETTINGS,
   type GeocodeInput,
   type GeocoderSettings,
 } from '../_shared/core.ts';
 import { geocodeAddress } from '../_shared/geocoder.ts';
-import { adminClient, CORS, identify, json } from '../_shared/http.ts';
+import { adminClient, CORS, geocoderApiKey, identify, json } from '../_shared/http.ts';
 
 const FIELDS = ['address1', 'address2', 'city', 'zip', 'province', 'country'] as const;
-const DEFAULT_SETTINGS: GeocoderSettings = {
-  provider: 'nominatim',
-  url: NOMINATIM_DEFAULT_URL,
-  enabled: true,
-  email: null,
-};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -47,13 +41,14 @@ Deno.serve(async (req) => {
   }
 
   const { data } = await admin.rpc('app_setting', { p_key: 'geocoder' });
-  const settings = (data as GeocoderSettings | null) ?? DEFAULT_SETTINGS;
+  const settings = (data as GeocoderSettings | null) ?? DEFAULT_GEOCODER_SETTINGS;
 
   try {
     const result = await geocodeAddress(input, {
       db: admin,
       fetch,
       settings,
+      apiKey: geocoderApiKey(settings.provider),
       mode: 'interactive',
       maxWaitMs: 8000,
     });

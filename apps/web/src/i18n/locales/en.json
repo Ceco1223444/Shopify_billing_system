@@ -438,6 +438,11 @@
     "why": "Why",
     "manual": "Chosen by a person",
     "shippingMethod": "Shipping method from the shop (for information only, not used): {{method}}",
+    "credit": {
+      "lead": "Address search:",
+      "geoapify": "Powered by Geoapify",
+      "osm": "© OpenStreetMap"
+    },
     "links": {
       "maps": "The address in Google Maps",
       "search": "Search the address on Google"

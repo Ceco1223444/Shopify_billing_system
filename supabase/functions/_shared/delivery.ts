@@ -38,6 +38,8 @@ export interface DeliveryJobDeps {
   db: Db;
   fetch: typeof fetch;
   geocoder: GeocoderSettings;
+  /** The geocoder's API key (Geoapify), from the Edge Function secret. */
+  geocoderApiKey?: string | null;
   /** Longest wait for a geocoder slot before giving up for this shipment (it stays pending). */
   geocodeMaxWaitMs: number;
   now?: () => number;
@@ -108,6 +110,7 @@ export function detectionDeps(deps: DeliveryJobDeps): DetectionDeps {
           db,
           fetch: deps.fetch,
           settings: deps.geocoder,
+          apiKey: deps.geocoderApiKey ?? null,
           mode: 'interactive',
           maxWaitMs: deps.geocodeMaxWaitMs,
         },
@@ -154,6 +157,8 @@ export interface DetectedShipment {
 /**
  * Detect the given shipments (or every pending one), until the time budget is used. A shipment
  * whose geocoding is busy stays pending; the next run (or the 2-minute tick) does it.
+ * Once the geocoder is busy or failing, the rest of this run does not ask it again, but goes on
+ * with the shipments that need no map (an office or locker named by the customer, BOX NOW, …).
  */
 export async function runDetection(
   deps: DeliveryJobDeps,
@@ -162,7 +167,17 @@ export async function runDetection(
   const now = deps.now ?? (() => Date.now());
   const started = now();
   const settings = await loadDetectionSettings(deps.db);
-  const lookups = detectionDeps(deps);
+  const real = detectionDeps(deps);
+  let geocoderOut = false;
+  const lookups: DetectionDeps = {
+    ...real,
+    geocode: async (input) => {
+      if (geocoderOut) return 'busy';
+      const found = await real.geocode(input);
+      if (found === 'busy') geocoderOut = true;
+      return found;
+    },
+  };
   const pending = await call<PendingShipment[]>(deps.db, 'delivery_pending', {
     p_limit: options.limit ?? 50,
     p_ids: options.ids ?? null,
@@ -181,8 +196,8 @@ export async function runDetection(
     }
     const outcome = await detectDelivery(inputOf(s), lookups, settings);
     if (outcome.kind === 'busy') {
-      out.push({ id: s.id, result: 'busy' });
-      break; // the geocoder is busy for everyone: stop, the next run continues
+      out.push({ id: s.id, result: 'busy' }); // stays pending: the next run tries it again
+      continue;
     }
     const decision = decisionJson(outcome.decision);
     const result = await call<DetectedShipment['result']>(deps.db, 'delivery_apply', {

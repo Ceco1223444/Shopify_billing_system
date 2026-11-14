@@ -28,7 +28,7 @@ export interface AppSettings {
   courier_modes: Record<SupportedCarrier, CourierMode>;
   econt_env: 'demo' | 'production';
   sender_offices: Partial<Record<SupportedCarrier, string>>;
-  /** Phase 4: the free geocoder. Changeable without a new app version (Nominatim usage policy). */
+  /** Phase 4: the geocoder (provider, URL, on/off). Changeable without a new app version. */
   geocoder: GeocoderSettings;
   /** Phase 5: the owner's extra detection words, merged with Appendix B. */
   detection_dictionary: DictionaryAdditions;
@@ -52,9 +52,10 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   courier_modes: { econt: 'api', speedy: 'manual' },
   econt_env: 'demo',
   sender_offices: {},
+  // Geoapify since 14 Nov 2026 (owner's choice): Nominatim refuses Supabase Edge Functions.
   geocoder: {
-    provider: 'nominatim',
-    url: 'https://nominatim.openstreetmap.org',
+    provider: 'geoapify',
+    url: 'https://api.geoapify.com/v1/geocode',
     enabled: true,
     email: null,
   },

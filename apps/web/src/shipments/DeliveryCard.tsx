@@ -430,6 +430,17 @@ export function DeliveryCard({
           {t('delivery.shippingMethod', { method: methods.join(', ') })}
         </p>
       )}
+      {/* Geoapify's free plan asks for this link; the data is OpenStreetMap's (ODbL). */}
+      <p className="muted small" data-testid="geocoder-credit">
+        {t('delivery.credit.lead')}{' '}
+        <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer noopener">
+          {t('delivery.credit.geoapify')}
+        </a>
+        {' · '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer noopener">
+          {t('delivery.credit.osm')}
+        </a>
+      </p>
 
       {callNow && (
         <div className="call-box" data-testid="call-box">

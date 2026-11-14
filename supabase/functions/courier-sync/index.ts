@@ -13,7 +13,7 @@
 import {
   ECONT_URLS,
   MockAdapter,
-  NOMINATIM_DEFAULT_URL,
+  DEFAULT_GEOCODER_SETTINGS,
   ok,
   type CourierAdapter,
   type CourierMode,
@@ -31,6 +31,7 @@ import {
   adminClient,
   CORS,
   econtProductionLogin,
+  geocoderApiKey,
   identify,
   isLocalStack,
   json,
@@ -44,12 +45,7 @@ const LEASE_SECONDS = 150;
 /** Used only if a setting is missing (the migrations seed them; see SETTINGS_DEFAULTS). */
 const FALLBACK = {
   courier_modes: { econt: 'api', speedy: 'manual' } as Record<SupportedCarrier, CourierMode>,
-  geocoder: {
-    provider: 'nominatim',
-    url: NOMINATIM_DEFAULT_URL,
-    enabled: true,
-    email: null,
-  } as GeocoderSettings,
+  geocoder: DEFAULT_GEOCODER_SETTINGS as GeocoderSettings,
 };
 
 interface Body {
@@ -169,7 +165,9 @@ Deno.serve(async (req) => {
     adapterFor,
     budgetMs: budget,
     leaseSeconds: LEASE_SECONDS,
-    geocoder: useMock ? null : { settings: geocoder, fetch },
+    geocoder: useMock
+      ? null
+      : { settings: geocoder, apiKey: geocoderApiKey(geocoder.provider), fetch },
     log: (message) => console.log(message),
   };
 

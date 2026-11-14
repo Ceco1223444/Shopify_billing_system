@@ -1,9 +1,11 @@
 /**
- * Geocoder against the real database with a fake Nominatim (no request leaves the computer).
+ * Geocoder against the real database with a fake Nominatim and a fake Geoapify (no request
+ * leaves the computer).
  *   T4-03 the same address twice → the second answer comes from the cache, no request
  *   T4-06 never more than 1 request per second to Nominatim, also with concurrent callers
  * Plus the query variants, caching failures, the scheduled-job pace (4 per minute), geocoding
- * points without coordinates, and the geocode Edge Function's callers.
+ * points without coordinates, the geocode Edge Function's callers, and Geoapify (the default
+ * since 14 Nov 2026: key, its own cache entries, refusals).
  */
 import { SETTINGS_DEFAULTS } from '@happyhome/core';
 import type { GeocodeInput } from '@happyhome/core/geo';
@@ -17,7 +19,15 @@ import { TEST_USERS } from '../support/users';
 
 let db: pg.Client;
 const rpc = rpcDb(adminClient());
-const settings = { ...SETTINGS_DEFAULTS.geocoder, url: 'https://nominatim.test' };
+/** Nominatim (the Phase 4 provider): most tests here are about the shared geocoder logic. */
+const settings = {
+  ...SETTINGS_DEFAULTS.geocoder,
+  provider: 'nominatim' as const,
+  url: 'https://nominatim.test',
+};
+/** Geoapify, as the migrations seed it (the default). */
+const geoapify = { ...SETTINGS_DEFAULTS.geocoder, url: 'https://geoapify.test/v1/geocode' };
+const GEOAPIFY_KEY = 'test-key-123';
 
 /** Fake Nominatim: answers by query text, remembers when each request came. */
 function fakeNominatim(answers: Record<string, unknown[]>, status = 200) {
@@ -33,6 +43,35 @@ function fakeNominatim(answers: Record<string, unknown[]>, status = 200) {
   }) as typeof globalThis.fetch;
   return { fetch, calls };
 }
+
+/** Fake Geoapify: answers by the text parameter, remembers each request's key. */
+function fakeGeoapify(answers: Record<string, unknown[]>, status = 200) {
+  const calls: { text: string; apiKey: string | null; filter: string | null }[] = [];
+  const fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    const text = url.searchParams.get('text') ?? '';
+    calls.push({
+      text,
+      apiKey: url.searchParams.get('apiKey'),
+      filter: url.searchParams.get('filter'),
+    });
+    if (status !== 200) return new Response('{"message":"Invalid apiKey"}', { status });
+    return new Response(JSON.stringify({ results: answers[text] ?? [] }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+  return { fetch, calls };
+}
+
+const gResult = (lat: number, lng: number, resultType: string, town = 'Пловдив') => ({
+  lat,
+  lon: lng,
+  formatted: `${resultType} ${lat}, ${town}, България`,
+  result_type: resultType,
+  country_code: 'bg',
+  city: town,
+  rank: { confidence: 1 },
+});
 
 const result = (lat: number, lng: number, addresstype: string, rank: number, town = 'Пловдив') => ({
   lat: String(lat),
@@ -261,12 +300,12 @@ describe('points without coordinates from the courier', () => {
   }
 
   it(
-    'are geocoded at the scheduled-job pace and marked as Nominatim coordinates',
+    'are geocoded at the scheduled-job pace and marked with the geocoder that placed them',
     { timeout: 30_000 },
     async () => {
       await addPending('G1', 'гр. Айтос [8500] ул. Славянска No 34');
-      const nominatim = fakeNominatim({
-        'ул. Славянска 34, 8500 Айтос': [result(42.7, 27.25, 'building', 30, 'Айтос')],
+      const fake = fakeGeoapify({
+        'ул. Славянска 34, 8500 Айтос': [gResult(42.7, 27.25, 'building', 'Айтос')],
       });
       const tried = await geocodePendingPoints(
         {
@@ -277,7 +316,7 @@ describe('points without coordinates from the courier', () => {
           }),
           budgetMs: 10_000,
           leaseSeconds: 60,
-          geocoder: { settings, fetch: nominatim.fetch },
+          geocoder: { settings: geoapify, apiKey: GEOAPIFY_KEY, fetch: fake.fetch },
         },
         10_000,
       );
@@ -288,7 +327,7 @@ describe('points without coordinates from the courier', () => {
       expect(rows[0]).toEqual({
         lat: 42.7,
         lng: 27.25,
-        coord_source: 'nominatim',
+        coord_source: 'geoapify',
         coord_confidence: 2,
         geocode_status: 'done',
         geocode_attempts: 1,
@@ -325,7 +364,7 @@ describe('points without coordinates from the courier', () => {
 });
 
 describe('geocode Edge Function', () => {
-  // The function would call the real Nominatim on a cache miss: switch the geocoder off here.
+  // The function would call the real geocoder on a cache miss: switch the geocoder off here.
   beforeEach(async () => {
     await db.query(
       `update public.settings set value = jsonb_set(value, '{enabled}', 'false') where key = 'geocoder'`,
@@ -338,10 +377,10 @@ describe('geocode Edge Function', () => {
   });
 
   it('a packer gets a cached address; a miss with the geocoder off says so', async () => {
-    const nominatim = fakeNominatim({
-      'ул. Иван Вазов 12, 4000 Пловдив': [result(42.145, 24.748, 'road', 26)],
+    const fake = fakeGeoapify({
+      'ул. Иван Вазов 12, 4000 Пловдив': [gResult(42.145, 24.748, 'street')],
     });
-    await geocodeAddress(STREET, deps(nominatim.fetch));
+    await geocodeAddress(STREET, deps(fake.fetch, { settings: geoapify, apiKey: GEOAPIFY_KEY }));
     const packer = await signedInClient(TEST_USERS.packer.email, TEST_USERS.packer.password);
     const token = await accessToken(packer);
     const hit = await callFunction('geocode', token, STREET);
@@ -364,5 +403,86 @@ describe('geocode Edge Function', () => {
     expect((await callFunction('geocode', await accessToken(owner), { city: 42 })).status).toBe(
       400,
     );
+  });
+});
+
+describe('Geoapify (the default provider)', () => {
+  const gDeps = (fetch: typeof globalThis.fetch, over: Partial<GeocoderDeps> = {}) =>
+    deps(fetch, { settings: geoapify, apiKey: GEOAPIFY_KEY, ...over });
+
+  it('finds the address with the key, Bulgaria only, and caches it under Geoapify', async () => {
+    const fake = fakeGeoapify({
+      'ул. Иван Вазов 12, 4000 Пловдив': [gResult(42.145, 24.748, 'building')],
+    });
+    expect(await geocodeAddress(STREET, gDeps(fake.fetch))).toMatchObject({
+      lat: 42.145,
+      lng: 24.748,
+      precision: 'street',
+      cached: false,
+    });
+    expect(fake.calls).toEqual([
+      { text: 'ул. Иван Вазов 12, 4000 Пловдив', apiKey: GEOAPIFY_KEY, filter: 'countrycode:bg' },
+    ]);
+    expect(await geocodeAddress(STREET, gDeps(fake.fetch))).toMatchObject({ cached: true });
+    expect(fake.calls).toHaveLength(1);
+
+    const { rows } = await db.query(
+      `select distinct provider from public.geocode_cache order by provider`,
+    );
+    expect(rows).toEqual([{ provider: 'geoapify' }]);
+    // The key is never stored.
+    const { rows: leaked } = await db.query(
+      `select count(*)::int as n from public.geocode_cache where raw::text like $1 or query_norm like $1`,
+      [`%${GEOAPIFY_KEY}%`],
+    );
+    expect(leaked[0].n).toBe(0);
+  });
+
+  it('each provider has its own cache: a Nominatim answer is not reused for Geoapify', async () => {
+    const nominatim = fakeNominatim({
+      'ул. Иван Вазов 12, 4000 Пловдив': [result(42.145, 24.748, 'road', 26)],
+    });
+    await geocodeAddress(STREET, deps(nominatim.fetch));
+    const fake = fakeGeoapify({
+      'ул. Иван Вазов 12, 4000 Пловдив': [gResult(42.1451, 24.7481, 'street')],
+    });
+    expect(await geocodeAddress(STREET, gDeps(fake.fetch))).toMatchObject({
+      lat: 42.1451,
+      cached: false,
+    });
+  });
+
+  it('without the key nothing is asked or cached, and the address waits', async () => {
+    const fake = fakeGeoapify({});
+    expect(await geocodeAddress(STREET, gDeps(fake.fetch, { apiKey: null }))).toMatchObject({
+      precision: 'failed',
+      reason: 'provider_error',
+    });
+    expect(fake.calls).toEqual([]);
+    const { rows } = await db.query('select count(*)::int as n from public.geocode_cache');
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('a refusal (wrong key, over the limit) is not cached', async () => {
+    const refusing = fakeGeoapify({}, 401);
+    expect(await geocodeAddress(STREET, gDeps(refusing.fetch))).toMatchObject({
+      reason: 'provider_error',
+    });
+    expect(refusing.calls).toHaveLength(1);
+    const { rows } = await db.query('select count(*)::int as n from public.geocode_cache');
+    expect(rows[0].n).toBe(0);
+  });
+
+  it('an answer outside the named town is skipped (the same town check as Nominatim)', async () => {
+    const fake = fakeGeoapify({
+      'ул. Иван Вазов 12, 4000 Пловдив': [gResult(42.69, 23.32, 'building', 'София')],
+      'ул. Иван Вазов 12, Пловдив': [gResult(42.1452, 24.7482, 'street')],
+    });
+    const out = await geocodeAddress(STREET, gDeps(fake.fetch));
+    expect(out).toMatchObject({ lat: 42.1452, precision: 'street' });
+    expect(fake.calls.map((c) => c.text)).toEqual([
+      'ул. Иван Вазов 12, 4000 Пловдив',
+      'ул. Иван Вазов 12, Пловдив',
+    ]);
   });
 });

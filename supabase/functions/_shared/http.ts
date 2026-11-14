@@ -1,5 +1,6 @@
 // Deno-side helpers shared by the Edge Functions (not imported by the Node tests).
 import { createClient } from 'npm:@supabase/supabase-js@2.119.0';
+import { GEOCODER_KEY_SECRETS, type GeocoderProvider } from './core.ts';
 
 export const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,12 @@ export function adminClient() {
 export type Admin = ReturnType<typeof adminClient>;
 
 /** True on the local development / CI stack (never on the hosted project). */
+/** The geocoder's API key from the Edge Function secrets (null: none needed, or not set). */
+export function geocoderApiKey(provider: GeocoderProvider): string | null {
+  const secret = GEOCODER_KEY_SECRETS[provider];
+  return (secret && Deno.env.get(secret)?.trim()) || null;
+}
+
 export function isLocalStack(): boolean {
   const host = new URL(Deno.env.get('SUPABASE_URL') ?? 'http://localhost').hostname;
   return ['kong', 'localhost', '127.0.0.1', 'host.docker.internal'].includes(host);
