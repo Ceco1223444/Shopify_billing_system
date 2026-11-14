@@ -443,3 +443,6 @@ verify_jwt = false
 [functions.geocode]
 enabled = true
 verify_jwt = false
+
+[functions.detect-delivery]
+verify_jwt = false

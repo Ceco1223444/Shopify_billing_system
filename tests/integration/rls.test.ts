@@ -102,7 +102,7 @@ describe('packer', () => {
       .eq('key', 'office_range_km')
       .select();
     expect(deleted).toEqual([]);
-    expect(await settingValue('office_range_km')).toEqual(5);
+    expect(await settingValue('office_range_km')).toEqual(1);
   });
 
   it('cannot write tariffs', async () => {

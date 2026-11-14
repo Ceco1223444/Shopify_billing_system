@@ -3,3 +3,4 @@
 export * from '../../../packages/core/src/couriers/index.ts';
 export * from '../../../packages/core/src/geo/index.ts';
 export type { CourierMode, SupportedCarrier } from '../../../packages/core/src/domain.ts';
+export * from '../../../packages/core/src/detect/index.ts';

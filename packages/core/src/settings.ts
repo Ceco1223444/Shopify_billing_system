@@ -1,3 +1,4 @@
+import type { DictionaryAdditions } from './detect/dictionary.ts';
 import type { CourierMode, SupportedCarrier } from './domain';
 import type { GeocoderSettings } from './geo/nominatim.ts';
 import { DEFAULT_VISIBLE_COLUMNS } from './import/columns';
@@ -29,19 +30,21 @@ export interface AppSettings {
   sender_offices: Partial<Record<SupportedCarrier, string>>;
   /** Phase 4: the free geocoder. Changeable without a new app version (Nominatim usage policy). */
   geocoder: GeocoderSettings;
+  /** Phase 5: the owner's extra detection words, merged with Appendix B. */
+  detection_dictionary: DictionaryAdditions;
 }
 
 export type SettingKey = keyof AppSettings;
 
 export const SETTINGS_DEFAULTS: AppSettings = {
   sender_profile: {},
-  office_range_km: 5,
+  office_range_km: 1, // Phase 5 owner decision (was 5)
   duplicate_window_hours: 48,
   default_parcel_weight_g: 1500,
   packaging_weight_g: 200,
   packaging_cost_cents: 0,
   courier_fee_payer: 'SENDER',
-  home_carrier_tie_break: 'speedy',
+  home_carrier_tie_break: 'econt', // Phase 5 owner decision (was speedy)
   visible_columns: [...DEFAULT_VISIBLE_COLUMNS],
   hidden_columns: [],
   raw_csv_retention_days: 90,
@@ -55,4 +58,5 @@ export const SETTINGS_DEFAULTS: AppSettings = {
     enabled: true,
     email: null,
   },
+  detection_dictionary: {},
 };

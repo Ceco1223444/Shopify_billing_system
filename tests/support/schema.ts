@@ -14,6 +14,7 @@ export const PUBLIC_TABLES = [
   'product_cost_history',
   'products',
   'settings',
+  'shipment_calls',
   'shipment_orders',
   'shipments',
   'stock_movements',
@@ -42,10 +43,18 @@ export const READ_ONLY_FOR_USERS = [
   'courier_offices',
   'courier_sync_runs', // Phase 4: written by the courier-sync Edge Function only
   'geocode_cache',
+  'shipment_calls', // Phase 5: written only through delivery_call_outcome()
 ] as const;
 
 /** Tables whose changes are broadcast over Realtime. */
-export const REALTIME_TABLES = ['flags', 'orders', 'products', 'shipments', 'sync_probe'] as const;
+export const REALTIME_TABLES = [
+  'flags',
+  'orders',
+  'products',
+  'shipment_calls',
+  'shipments',
+  'sync_probe',
+] as const;
 
 export const BUCKETS = ['labels', 'product-photos', 'raw-imports'] as const;
 
